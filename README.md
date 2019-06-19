@@ -2,7 +2,7 @@
 
 This repository contains a GPyTorch implementation of functional kernel learning (FKL) from the paper
 
-[Function-Space Distributions over Kernels](????)
+[Function-Space Distributions over Kernels](FKL.pdf)
 
 by [Gregory Benton](https://g-benton.github.io/), [Wesley Maddox](https://wjmaddox.github.io), [Jayson Salkey](https://www.cs.cornell.edu/~salk/), Julio Albinati, and [Andrew Gordon Wilson](https://people.orie.cornell.edu/andrew/).
 
@@ -20,9 +20,9 @@ Please cite our work if you find it useful:
 
 Functional kernel learning is an extension of standard Gaussian process regression that directly models both
 the data via a standard Gaussian process regression set-up, while also non-parametrically modelling kernel space.
-To model the kernel in a non-parametric manner, FKL utilizes Bochner's Theorem to parameterize the kernel as a 
-deterministic function of its spectral density. FKL then model the spectral density as a latent Gaussian process, 
-performing alternating updates of elliptical slice sampling on the latent GP with gradient-based updates for the 
+To model the kernel in a non-parametric manner, FKL utilizes Bochner's Theorem to parameterize the kernel as a
+deterministic function of its spectral density. FKL then model the spectral density as a latent Gaussian process,
+performing alternating updates of elliptical slice sampling on the latent GP with gradient-based updates for the
 GP regression hyper-parameters.
 
 |     Prior, Function Space |   Prior, Kernel Space  |
@@ -35,7 +35,7 @@ GP regression hyper-parameters.
 
 ## Package
 
-To install the package, run `python setup.py develop`. 
+To install the package, run `python setup.py develop`.
 See dependencies in `requirements.txt` (broadly latest versions of PyTorch (>=1.0.0), GPyTorch(>=0.3.2), and standard scipy/numpy builds.)
 
 Please note that the codebase is written to use a GPU if it finds one. We also wrote everything to use double precision (even on the GPU) as default.
@@ -53,7 +53,7 @@ python regression_runner.py --iters=5 --ess_iters=100 --optim_iters=10 --omega_m
 
 ## Multi-Dimensional Regression (with Product Kernels)
 
-Multi-dimensional regression tasks can be found in the exps_multi_input_dim/ folder, one can use 
+Multi-dimensional regression tasks can be found in the exps_multi_input_dim/ folder, one can use
 regression_runner_prod_kernel.py and regression_runner_separate_latents_per_dim.py
 
 To replicate our experiments, please run
@@ -67,7 +67,7 @@ which will run on all datasets in Table 1.
 
 This is found in the `prcp-testing/` and `fx/` folder.
 
-The large scale precipitation dataset can be found at: https://www.dropbox.com/sh/004x3em6oskjue3/AADl4beuZJPBMqckGtW430e9a?dl=0 (hopefully anonymous). 
+The large scale precipitation dataset can be found at: https://www.dropbox.com/sh/004x3em6oskjue3/AADl4beuZJPBMqckGtW430e9a?dl=0 (hopefully anonymous).
 This is a pre-processed version. Drop it into the prcp-testing/data-management/ folder and then run.
 
 ```
