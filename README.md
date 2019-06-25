@@ -2,7 +2,7 @@
 
 This repository contains a GPyTorch implementation of functional kernel learning (FKL) from the paper
 
-[Function-Space Distributions over Kernels](FKL.pdf)
+[Function-Space Distributions over Kernels](http://roseyu.com/time-series-workshop/submissions/2019/timeseries-ICML19_paper_52.pdf)
 
 by [Gregory Benton](https://g-benton.github.io/), [Wesley Maddox](https://wjmaddox.github.io), [Jayson Salkey](https://www.cs.cornell.edu/~salk/), Julio Albinati, and [Andrew Gordon Wilson](https://people.orie.cornell.edu/andrew/).
 
