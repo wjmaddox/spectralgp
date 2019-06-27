@@ -1,6 +1,6 @@
 # Functional Kernel Learning (FKL)
 
-This repository contains a GPyTorch implementation of functional kernel learning (FKL) from the paper
+This repository contains a GPyTorch implementation of functional kernel learning (FKL) from the paper,
 
 [Function-Space Distributions over Kernels](http://roseyu.com/time-series-workshop/submissions/2019/timeseries-ICML19_paper_52.pdf)
 
