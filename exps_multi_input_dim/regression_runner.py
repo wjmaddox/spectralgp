@@ -93,6 +93,8 @@ def main(argv, dataset, seed=88):
     data_mod.eval()
     data_lh.eval()
     
+    data_mod_means = torch.zeros_like(data_mod(test_x).mean)
+    total_variance = torch.zeros_like(data_lh(data_mod(test_x)).variance)
     
     test_rmse = 0.0
     unnorm_test_rmse = 0.0
@@ -105,30 +107,29 @@ def main(argv, dataset, seed=88):
                 data_mod.covar_module.set_latent_params(alt_sampler.fgsampled[dim][0, :, x], idx=dim)
                 
             # Verify this is the correct way to handle multidim train setting
+            
             data_mod.set_train_data(train_x, train_y) # to clear out the cache
-
-            d = data_mod(test_x).mean - test_y
-            du = d * y_std
-
-            test_rmse += torch.sqrt(torch.mean(torch.pow(d, 2)))
-            unnorm_test_rmse += torch.sqrt(torch.mean(torch.pow(du, 2)))
-            print("Normalised RMSE: {}".format(test_rmse))
-            print("Unnormalised RMSE: {}".format(unnorm_test_rmse))
+            data_mod_means += data_mod(test_x).mean
 
             y_preds = data_lh(data_mod(test_x))
             # y_var = f_var + data_noise
             y_var = y_preds.variance
+            total_variance += (y_var + torch.pow(data_mod(test_x).mean,2))
+    
+    
+    meaned_data_mod_means = data_mod_means / float(alt_sampler.fgsampled[0].shape[-1])
+    total_variance = total_variance/float(alt_sampler.fgsampled[0].shape[-1]) - torch.pow(meaned_data_mod_means,2)
+    
+    d = meaned_data_mod_means - test_y
+    du = d * y_std
 
-            nll = 0.5 * torch.log(2. * math.pi * y_var) +  torch.pow((data_mod(test_x).mean - test_y),2)/(2. * y_var)
-            sll = nll - (0.5 * torch.log(2. * math.pi * torch.pow(y_std_train, 2)) +  torch.pow((torch.mean(train_y) - test_y),2)/(2. * torch.pow(y_std_train, 2)))
-            msll += torch.mean(sll)
-            nll_sum += nll.sum()
+    test_rmse = torch.sqrt(torch.mean(torch.pow(d, 2)))
+    unnorm_test_rmse = torch.sqrt(torch.mean(torch.pow(du, 2)))
     
-    
-    test_rmse /= float(alt_sampler.fgsampled[0].shape[-1])
-    unnorm_test_rmse /= float(alt_sampler.fgsampled[0].shape[-1])
-    nll_sum /= float(alt_sampler.fgsampled[0].shape[-1])
-    msll /= float(alt_sampler.fgsampled[0].shape[-1])
+    nll = 0.5 * torch.log(2. * math.pi * total_variance) +  torch.pow((meaned_data_mod_means - test_y),2)/(2. * total_variance)
+    sll = nll - (0.5 * torch.log(2. * math.pi * torch.pow(y_std_train, 2)) +  torch.pow((torch.mean(train_y) - test_y),2)/(2. * torch.pow(y_std_train, 2)))
+    msll += torch.mean(sll)
+    nll_sum += nll.sum()
     
     print("Normalised RMSE: {}".format(test_rmse))
     print("Unnormalised RMSE: {}".format(unnorm_test_rmse))
