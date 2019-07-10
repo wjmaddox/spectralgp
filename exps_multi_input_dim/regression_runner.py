@@ -6,7 +6,7 @@ import numpy.linalg as linalg
 
 import spectralgp
 
-from spectralgp.samplers import AlternatingSampler, AlternatingSamplerMultiDim
+from spectralgp.samplers import AlternatingSampler
 from spectralgp.models import ExactGPModel, SpectralModel, ProductKernelSpectralModel
 
 from spectralgp.sampling_factories import ss_factory, ess_factory
@@ -68,46 +68,70 @@ def main(argv, dataset, seed=88):
     data_lh = gpytorch.likelihoods.GaussianLikelihood(noise_prior=gpytorch.priors.SmoothedBoxPrior(1e-8, 1e-3))
     data_mod = spectralgp.models.ProductKernelSpectralModel(train_x, train_y, data_lh, shared=shared,
         normalize = False, symmetrize = False, num_locs = args.nomg, spacing=args.spacing, pretrain=False, omega_max = 8., nonstat = True)
-    #data_lh.raw_noise = torch.tensor(-3.5)
-    ###############################
-    ## set up sampling factories ##
-    ###############################
 
-    ess_fact = lambda nsamples, ide : spectralgp.sampling_factories.ess_factory(nsamples, data_mod, data_lh, ide)
-
-    ss_fact = lambda nsamples, ide : spectralgp.sampling_factories.ss_factory(nsamples, data_mod, data_lh, ide)
 
 
     ################################
     ## set up alternating sampler ##
     ################################
+    
+    alt_sampler = spectralgp.samplers.AlternatingSampler(
+    [data_mod], [data_lh], 
+    spectralgp.sampling_factories.ss_factory, [spectralgp.sampling_factories.ess_factory],
+    totalSamples=args.iters, numInnerSamples=args.ess_iters, numOuterSamples=args.optim_iters, num_dims=in_dims
+    )
+    alt_sampler.run();
 
-    alt_sampler = spectralgp.samplers.AlternatingSamplerMultiDim(ss_fact, ess_fact,
-                        totalSamples=args.iters,
-                        numInnerSamples=args.ess_iters,
-                        numOuterSamples=args.optim_iters,
-                        in_dims=in_dims)
+#     alt_sampler = spectralgp.samplers.AlternatingSamplerMultiDim(ss_fact, ess_fact,
+#                         totalSamples=args.iters,
+#                         numInnerSamples=args.ess_iters,
+#                         numOuterSamples=args.optim_iters,
+#                         in_dims=in_dims)
 
-    alt_sampler.run()
+#     alt_sampler.run()
 
     data_mod.eval()
     data_lh.eval()
-    d = data_mod(test_x).mean - test_y
-    du = d * y_std
+    
+    
+    test_rmse = 0.0
+    unnorm_test_rmse = 0.0
+    nll_sum = 0.0
+    msll = 0.0
+    
+    with torch.no_grad():
+        for x in range(0,alt_sampler.fgsampled[0].shape[-1]):
+            for dim in range(0,in_dims):
+                data_mod.covar_module.set_latent_params(alt_sampler.fgsampled[dim][0, :, x], idx=dim)
+                
+            # Verify this is the correct way to handle multidim train setting
+            data_mod.set_train_data(train_x, train_y) # to clear out the cache
 
-    test_rmse = torch.sqrt(torch.mean(torch.pow(d, 2)))
-    unnorm_test_rmse = torch.sqrt(torch.mean(torch.pow(du, 2)))
+            d = data_mod(test_x).mean - test_y
+            du = d * y_std
+
+            test_rmse += torch.sqrt(torch.mean(torch.pow(d, 2)))
+            unnorm_test_rmse += torch.sqrt(torch.mean(torch.pow(du, 2)))
+            print("Normalised RMSE: {}".format(test_rmse))
+            print("Unnormalised RMSE: {}".format(unnorm_test_rmse))
+
+            y_preds = data_lh(data_mod(test_x))
+            # y_var = f_var + data_noise
+            y_var = y_preds.variance
+
+            nll = 0.5 * torch.log(2. * math.pi * y_var) +  torch.pow((data_mod(test_x).mean - test_y),2)/(2. * y_var)
+            sll = nll - (0.5 * torch.log(2. * math.pi * torch.pow(y_std_train, 2)) +  torch.pow((torch.mean(train_y) - test_y),2)/(2. * torch.pow(y_std_train, 2)))
+            msll += torch.mean(sll)
+            nll_sum += nll.sum()
+    
+    
+    test_rmse /= float(alt_sampler.fgsampled[0].shape[-1])
+    unnorm_test_rmse /= float(alt_sampler.fgsampled[0].shape[-1])
+    nll_sum /= float(alt_sampler.fgsampled[0].shape[-1])
+    msll /= float(alt_sampler.fgsampled[0].shape[-1])
+    
     print("Normalised RMSE: {}".format(test_rmse))
     print("Unnormalised RMSE: {}".format(unnorm_test_rmse))
-
-    y_preds = data_lh(data_mod(test_x))
-    # y_var = f_var + data_noise
-    y_var = y_preds.variance
-
-    nll = 0.5 * torch.log(2. * math.pi * y_var) +  torch.pow((data_mod(test_x).mean - test_y),2)/(2. * y_var)
-    sll = nll - (0.5 * torch.log(2. * math.pi * torch.pow(y_std_train, 2)) +  torch.pow((torch.mean(train_y) - test_y),2)/(2. * torch.pow(y_std_train, 2)))
-    msll = torch.mean(sll)
-    nll_sum = nll.sum()
     print("Summed NLL: {}".format(nll_sum))
     print("MSLL: {}".format(msll))
 

@@ -21,8 +21,8 @@ class MeanEllipticalSlice(EllipticalSliceSampler):
 
     def run(self):
         self.f_sampled, self.ell = super().run()
-
+        #self.demeaned_f_sampled = self.f_sampled.clone().detach()
         #add means back into f_sampled
         self.f_sampled = self.f_sampled + self.mean_vector.unsqueeze(1)
-
+        #return self.f_sampled, self.demeaned_f_sampled, self.ell
         return self.f_sampled, self.ell

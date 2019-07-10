@@ -83,8 +83,9 @@ class SpectralGPKernel(Kernel):
             omega_lim = (1.e-10, omega_max)
         else:
             omega_lim = None
-
-        self.omega.data, log_periodogram = spectral_init(train_x, train_y, spacing, num_freq=num_locs, omega_lim=omega_lim)
+        
+        if not nonstat:
+            self.omega.data, log_periodogram = spectral_init(train_x, train_y, spacing, num_freq=num_locs, omega_lim=omega_lim)
 
         if nonstat:
             self.omega.data = torch.linspace(1.e-10, omega_max, num_locs)
@@ -113,14 +114,20 @@ class SpectralGPKernel(Kernel):
 
         # now fit the latent model to the log periodogram
         if pretrain:
+            print("Pretrain On")
             trainer(self.omega, log_periodogram, self.latent_mod, self.latent_lh)
 
         self.latent_mod.train()
         self.latent_lh.train()
 
         # set the latent g to be the demeaned periodogram
-        # and make it not require a gradient (we're using ESS for it)
-        self.latent_params.data = log_periodogram
+        # and make it not require a gradient (we're using ESS for it)i
+        #print(log_periodogram.shape)
+        #print(self.latent_mod(self.omega).sample().detach().shape)
+        
+        # SHOULD BE LOG PERIODOGRAM
+        #with gpytorch.settings.fast_computations(False, False, False), gpytorch.settings.fast_pred_samples(False):
+        self.latent_params.data = self.latent_mod(self.omega).sample().detach()#log_periodogram
         self.latent_params.requires_grad = False
 
         # clear cache and reset training data

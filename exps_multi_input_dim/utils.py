@@ -20,11 +20,8 @@ def parse():
     parser.add_argument('--iters', help='(int) # of ESS iterations to run',
                         default=100, type=int)
     parser.add_argument('--data', help='(str) options: "airline"...',
-                        default='airline', type=str,
-                        choices=['airline', 'all', 'jura', 'QP', 'audio1', 'RBF', 'co2', 'sinc', 'wind',
-                                'gas', 'energy2', 'concrete2', 'yacht2', 'housing2', '3droad', 'electric', 'protein', 'video', 'elevators',
-                                'linear', 'SM', 'wine', 'stock', 'solar', 'servo2', 'pendulum', 'machine2', 'forest', 'fertility2',
-                                'challenger', 'breastcancer', 'autos', 'autompg', 'airfoil', 'concreteslump2', 'skillcraft2'])
+                        default='all', type=str,
+                        choices=['all', 'challenger', 'fertility', 'concreteslump', 'servo', 'yacht', 'autompg', 'housing', 'stock', 'pendulum', 'energy', 'concrete', 'airfoil'])
     parser.add_argument('--nx', help='(int) number of data points for simulated data',
                         default=400, type=int)
     parser.add_argument('--lengthscale', help='(float) lengthscale for sim kernel',
