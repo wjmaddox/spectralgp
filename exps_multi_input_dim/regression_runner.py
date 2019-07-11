@@ -156,7 +156,7 @@ if __name__ == '__main__':
                     times = []
                     nlls = []
                     mslls = []
-                    for experiment in range(10):
+                    for experiment in range(50):
                         torch.cuda.empty_cache()
                         t, nt, total_times, dnll, dmsll = main(sys.argv[1:], dataset, seed=np.random.randint(10000000))
                         test_rmses.append(t)
