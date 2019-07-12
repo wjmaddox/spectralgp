@@ -23,6 +23,7 @@ class AlternatingSampler:
         self.total_time = 0.0
 
         outer_samples = [[] for x in range(self.num_dims)]
+        final_outer_samples = [[] for x in range(self.num_dims)]
         #demeaned_inner_samples = [[] for x in range(self.num_dims)]
         final_inner_samples = [[] for x in range(self.num_dims)]
         inner_samples = [[] for x in range(self.num_dims)]
@@ -61,6 +62,7 @@ class AlternatingSampler:
                     # use final (self.numInnerSamples) of ESS as kernels to average over
                     #demeaned_inner_samples[in_dim].append(copy.deepcopy(demeaned_curr_inner_samples))
                     final_inner_samples[in_dim].append(copy.deepcopy(curr_inner_samples))
+                    final_outer_samples[in_dim].append(copy.deepcopy(curr_outer_samples))
 
             ts_d = torch.abs(torch.tensor(ts - time.time()))
 
@@ -70,5 +72,6 @@ class AlternatingSampler:
         self.total_time /= self.totalSamples
         self.hsampled = [torch.cat(outer_samples[id], dim=-1) for id in range(self.num_dims)]
         self.fgsampled = [torch.cat(final_inner_samples[id], dim=-1) for id in range(self.num_dims)]
+        self.fhsampled = [torch.cat(final_outer_samples[id], dim=-1) for id in range(self.num_dims)]
         self.gsampled = [torch.cat(inner_samples[id], dim=-1) for id in range(self.num_dims)]
         # return self.hsampled, self.gsampled # don't return anything, makes notebooks icky

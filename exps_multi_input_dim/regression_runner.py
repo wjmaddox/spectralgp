@@ -82,14 +82,6 @@ def main(argv, dataset, seed=88):
     )
     alt_sampler.run();
 
-#     alt_sampler = spectralgp.samplers.AlternatingSamplerMultiDim(ss_fact, ess_fact,
-#                         totalSamples=args.iters,
-#                         numInnerSamples=args.ess_iters,
-#                         numOuterSamples=args.optim_iters,
-#                         in_dims=in_dims)
-
-#     alt_sampler.run()
-
     data_mod.eval()
     data_lh.eval()
     
@@ -103,6 +95,9 @@ def main(argv, dataset, seed=88):
     
     with torch.no_grad():
         for x in range(0,alt_sampler.fgsampled[0].shape[-1]):
+            #print(alt_sampler.fhsampled[0].shape)
+            #exit()
+            
             for dim in range(0,in_dims):
                 data_mod.covar_module.set_latent_params(alt_sampler.fgsampled[dim][0, :, x], idx=dim)
                 
@@ -156,7 +151,7 @@ if __name__ == '__main__':
                     times = []
                     nlls = []
                     mslls = []
-                    for experiment in range(50):
+                    for experiment in range(10):
                         torch.cuda.empty_cache()
                         t, nt, total_times, dnll, dmsll = main(sys.argv[1:], dataset, seed=np.random.randint(10000000))
                         test_rmses.append(t)
