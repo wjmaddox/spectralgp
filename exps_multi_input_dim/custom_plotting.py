@@ -15,12 +15,15 @@ def plot_kernel(alt_sampler, data_mod, gen_kern):
         data_mod.eval()
         
         for dim in range(len(alt_sampler.gsampled)):
-            tau = torch.linspace(0, 3, 300)
-            plt_kernels = torch.zeros(tau.nelement(), last_samples)
+            tau = torch.stack([torch.linspace(0, 3, 300) for dimm in range(len(alt_sampler.gsampled))], dim=1)
+            plt_kernels = torch.zeros(tau[:,0].nelement(), last_samples)
             for ii in range(last_samples):
                 out_samples = alt_sampler.gsampled[dim][0, :, -last_samples:]
                 data_mod.covar_module.set_latent_params(out_samples[:,ii], idx=dim)
-                plt_kernels[:, ii] = data_mod.covar_module.kernels[dim](tau, torch.zeros(1,1)).squeeze(1)
+#                 print(tau.shape)
+#                 print(torch.zeros(1,4).shape)
+                #print(data_mod.covar_module.kernels[dim](tau, torch.zeros(1,4)).detach().cpu().numpy())
+                plt_kernels[:, ii] = data_mod.covar_module(tau, torch.zeros(1,4)).squeeze(1)
 
             plt_kernels = plt_kernels.detach().cpu().numpy()
             tau = tau.cpu().numpy()
