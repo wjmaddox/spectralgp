@@ -10,6 +10,7 @@ from spectralgp.samplers import AlternatingSampler
 from spectralgp.models import ExactGPModel, SpectralModel, ProductKernelSpectralModel
 
 from spectralgp.sampling_factories import ss_factory, ess_factory
+from custom_plotting import plot_kernel
 
 import data
 # from save_models import save_model_output
@@ -25,7 +26,7 @@ import traceback
 
 torch.set_default_dtype(torch.float64)
 
-def main(argv, dataset, seed=88):
+def main(argv, dataset, seed, iteration):
     '''
     runs ESS with fixed hyperparameters:
     run with -h for CL arguments description
@@ -80,7 +81,7 @@ def main(argv, dataset, seed=88):
     spectralgp.sampling_factories.ss_factory, [spectralgp.sampling_factories.ess_factory],
     totalSamples=args.iters, numInnerSamples=args.ess_iters, numOuterSamples=args.optim_iters, num_dims=in_dims
     )
-    alt_sampler.run();
+    alt_sampler.run()
 
     data_mod.eval()
     data_lh.eval()
@@ -130,6 +131,8 @@ def main(argv, dataset, seed=88):
     print("Unnormalised RMSE: {}".format(unnorm_test_rmse))
     print("Summed NLL: {}".format(nll_sum))
     print("MSLL: {}".format(msll))
+    
+    plot_kernel(alt_sampler, data_mod, dataset)
 
     del data_lh
     del data_mod
@@ -139,9 +142,6 @@ def main(argv, dataset, seed=88):
 if __name__ == '__main__':
     args = utils.parse()
     if args.data != 'all':
-        # data_l = ['fertility2', 'concreteslump2', 'servo2', 'machine2', 'yacht2', 'housing2', 'energy2']
-        # data_l = ['yacht2','housing2','energy2']
-        # data_l = ['concreteslump2']
         data_l = [args.data]
         with open('log_file_{}_{}_latent.out'.format(args.mlatent, args.data), 'w+') as f:
             for dataset in data_l:
@@ -153,7 +153,7 @@ if __name__ == '__main__':
                     mslls = []
                     for experiment in range(10):
                         torch.cuda.empty_cache()
-                        t, nt, total_times, dnll, dmsll = main(sys.argv[1:], dataset, seed=np.random.randint(10000000))
+                        t, nt, total_times, dnll, dmsll = main(sys.argv[1:], dataset, seed=np.random.randint(10000000), iteration=experiment)
                         test_rmses.append(t)
                         unnorm_test_rmses.append(nt)
                         times.append(total_times)

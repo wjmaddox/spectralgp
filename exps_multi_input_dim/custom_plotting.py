@@ -8,36 +8,33 @@ import numpy as np
 
 
 
-def plot_kernel(alt_sampler, data_mod, gen_kern):
+def plot_kernel(alt_sampler, data_mod, dataset):
     last_samples = min(10, alt_sampler.gsampled[0].size(1))
     with torch.no_grad():
         # preprocess the spectral samples #
         data_mod.eval()
         
-        for dim in range(len(alt_sampler.gsampled)):
-            tau = torch.stack([torch.linspace(0, 3, 300) for dimm in range(len(alt_sampler.gsampled))], dim=1)
-            plt_kernels = torch.zeros(tau[:,0].nelement(), last_samples)
-            for ii in range(last_samples):
-                out_samples = alt_sampler.gsampled[dim][0, :, -last_samples:]
-                data_mod.covar_module.set_latent_params(out_samples[:,ii], idx=dim)
-#                 print(tau.shape)
-#                 print(torch.zeros(1,4).shape)
-                #print(data_mod.covar_module.kernels[dim](tau, torch.zeros(1,4)).detach().cpu().numpy())
-                plt_kernels[:, ii] = data_mod.covar_module(tau, torch.zeros(1,4)).squeeze(1)
+        tau = torch.stack([torch.linspace(0, 1, 300) for dimm in range(len(alt_sampler.gsampled))], dim=1)
+        plt_kernels = torch.zeros(tau[:,0].nelement(), last_samples)
+        for ii in range(last_samples):
+            for dim in range(len(alt_sampler.gsampled)):
+                data_mod.covar_module.set_latent_params(alt_sampler.gsampled[dim][0, :, -last_samples:][:,ii], idx=dim)
 
-            plt_kernels = plt_kernels.detach().cpu().numpy()
-            tau = tau.cpu().numpy()
-            colors = ["#eac100", "#5893d4", "#10316b", "#070d59"]
-            plt.plot(tau, plt_kernels[:, 0], color=colors[1], alpha=0.5,
-                    label="Sampled Kernels")
-            plt.plot(tau, plt_kernels, color=colors[1], alpha=0.5)
+            plt_kernels[:, ii] = data_mod.covar_module(tau, torch.zeros(1,4)).squeeze(1)
 
-            plt.ylabel("K(tau)", fontsize=14)
-            plt.xlabel("tau", fontsize=14)
-            plt.title("Kernel Reconstruction; Dimension: {}".format(dim), fontsize=20)
-            plt.legend(loc=1)
-            plt.grid(alpha = 0.5)
-            plt.show()
+        plt_kernels = plt_kernels.detach().cpu().numpy()
+        tau = tau.cpu().numpy()
+        colors = ["#eac100", "#5893d4", "#10316b", "#070d59"]
+        plt.plot(tau, plt_kernels[:, 0], color=colors[1], alpha=0.5,
+                label="Sampled Kernels")
+        plt.plot(tau, plt_kernels, color=colors[1], alpha=0.5)
+        plt.ylabel("K(tau)", fontsize=14)
+        plt.xlabel("tau", fontsize=14)
+        plt.title("Kernel Reconstruction", fontsize=20)
+        plt.legend(loc=1)
+        plt.grid(alpha = 0.5)
+        plt.savefig('{}_sampled_kernels.png'.format(dataset))
+        #plt.show()
 
 # def plot_kernel_2(alt_sampler, omega, data_mod, latent_mod, gen_kern, n_to_plt=5):
 #     tau_min = 0
