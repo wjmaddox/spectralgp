@@ -20,7 +20,7 @@ def plot_kernel(alt_sampler, data_mod, dataset):
             for dim in range(len(alt_sampler.gsampled)):
                 data_mod.covar_module.set_latent_params(alt_sampler.gsampled[dim][0, :, -last_samples:][:,ii], idx=dim)
 
-            plt_kernels[:, ii] = data_mod.covar_module(tau, torch.zeros(1,4)).squeeze(1)
+            plt_kernels[:, ii] = data_mod.covar_module(tau, torch.zeros(1,int(len(alt_sampler.gsampled)))).squeeze(1)
 
         plt_kernels = plt_kernels.detach().cpu().numpy()
         tau = tau.cpu().numpy()
