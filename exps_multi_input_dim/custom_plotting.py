@@ -30,10 +30,11 @@ def plot_kernel(alt_sampler, data_mod, dataset):
         plt.plot(tau, plt_kernels, color=colors[1], alpha=0.5)
         plt.ylabel("K(tau)", fontsize=14)
         plt.xlabel("tau", fontsize=14)
-        plt.title("Kernel Reconstruction", fontsize=20)
+        plt.title("{} Kernels".format(dataset), fontsize=20)
         plt.legend(loc=1)
         plt.grid(alpha = 0.5)
         plt.savefig('{}_sampled_kernels.png'.format(dataset))
+        plt.close()
         #plt.show()
 
 # def plot_kernel_2(alt_sampler, omega, data_mod, latent_mod, gen_kern, n_to_plt=5):
