@@ -110,7 +110,7 @@ for datum in datasets:
             attempts += 1
             continue
 
-    model_used = 'Spectral Mixture (SGPR)'
+    model_used = 'Spectral Mixture ARD (SGPR)'
 
     print(model_used, ' RMSE ', datum, np.around(np.mean(np.array(rmses)), decimals=3), '$\pm$', np.around(np.std(np.array(rmses)), decimals=3))
     print(model_used, ' NLL ', datum, np.around(np.mean(np.array(nlls)), decimals=3), '$\pm$', np.around(np.std(np.array(nlls)), decimals=3))
