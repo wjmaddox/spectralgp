@@ -15,9 +15,17 @@ class ExactGPModel(gpytorch.models.ExactGP):
     def __init__(self, train_x, train_y, likelihood, mean):
         super(ExactGPModel, self).__init__(train_x, train_y, likelihood)
         self.mean_module = gpytorch.means.ConstantMean()
-        self.base_covar_module = mean(num_mixtures=4, ard_num_dims=train_x.size()[-1])
-        #self.base_covar_module.initialize_from_data(train_x, train_y)
-        self.covar_module = gpytorch.kernels.InducingPointKernel(self.base_covar_module, inducing_points=train_x[:int(0.75 * list(train_x.size())[0]), :], likelihood=likelihood)
+        kernels = []
+
+        for d in range(0,train_x.size(-1)):
+            kernels.append(mean(num_mixtures=4, active_dims=torch.tensor([d])))
+
+        self.base_covar_module = gpytorch.kernels.ProductKernel(*kernels)
+
+        # for d in range(0,train_x.size(-1)):
+            # self.base_covar_module.kernels[d].initialize_from_data(train_x[:,d], train_y)
+
+        self.covar_module = self.base_covar_module
 
     def forward(self, x):
         mean_x = self.mean_module(x)
@@ -110,7 +118,7 @@ for datum in datasets:
             attempts += 1
             continue
 
-    model_used = 'Spectral Mixture ARD (SGPR)'
+    model_used = 'Spectral Mixture Product Kernels'
 
     print(model_used, ' RMSE ', datum, np.around(np.mean(np.array(rmses)), decimals=3), '$\pm$', np.around(np.std(np.array(rmses)), decimals=3))
     print(model_used, ' NLL ', datum, np.around(np.mean(np.array(nlls)), decimals=3), '$\pm$', np.around(np.std(np.array(nlls)), decimals=3))

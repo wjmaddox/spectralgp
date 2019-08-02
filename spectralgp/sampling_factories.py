@@ -37,7 +37,7 @@ def ss_factory(nsamples, data_mod, data_lh, idx = None):
     if isinstance(data_mod, list):
         data_mod = data_mod[0]
         data_lh = data_lh[0]
-
+    
     # defining log-likelihood function
     data_mod.train()
     data_lh.train()
@@ -64,7 +64,7 @@ def ss_factory(nsamples, data_mod, data_lh, idx = None):
             #num_y = len(data_mod.train_targets)
             #print('P_y is: ', data_lh(data_mod(*data_mod.train_inputs)).log_prob(data_mod.train_targets)/num_y)
             #print('p_nu is: ', data_mod.covar_module.latent_prior.log_prob(data_mod.covar_module.latent_params)/num_y)
-            return loss
+            return loss, data_mod.state_dict()
 
     ell_func = lambda h: ss_ell_builder(latent_mod, latent_lh, data_mod, data_lh)
 

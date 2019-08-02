@@ -27,7 +27,7 @@ class SGD:
         self.optimizer = torch.optim.Adam(self.parameters, amsgrad = True, lr = lr)
 
     def run(self):
-        self.f_sampled = torch.zeros(self.n, self.n_samples)
+        self.f_sampled = [[] for i in range(self.n_samples)]
         self.ell = torch.zeros(self.n_samples, 1)
 
         for ii in range(self.n_samples):
@@ -36,8 +36,9 @@ class SGD:
             self.optimizer.zero_grad()
 
             # compute negative log likelihood
-            ell_cur = -self.model_ell_func(self.parameters, **self.kwargs)
-
+            ell_cur, state_dict = self.model_ell_func(self.parameters, **self.kwargs)
+            ell_cur = -1. * ell_cur
+            
             # take optimization steps
             ell_cur.backward()
             self.optimizer.step()
@@ -45,8 +46,7 @@ class SGD:
             # store parameters
             with torch.no_grad():
                 self.ell[ii,0] = ell_cur.detach().item()
-                output_pars = flatten(self.parameters).detach().view(-1)
-                self.f_sampled[:, ii] = output_pars
+                self.f_sampled[ii] = state_dict
 
             #print('ell = %s' % -self.ell[ii,0])
 

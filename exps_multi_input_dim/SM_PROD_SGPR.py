@@ -22,8 +22,8 @@ class ExactGPModel(gpytorch.models.ExactGP):
 
         self.base_covar_module = gpytorch.kernels.ProductKernel(*kernels)
 
-        for d in range(0,train_x.size(-1)):
-            self.base_covar_module.kernels[d].initialize_from_data(train_x[:,d], train_y)
+        #for d in range(0,train_x.size(-1)):
+        #    self.base_covar_module.kernels[d].initialize_from_data(train_x[:,d], train_y)
 
         self.covar_module = gpytorch.kernels.InducingPointKernel(self.base_covar_module, inducing_points=train_x[:int(0.75 * list(train_x.size())[0]), :], likelihood=likelihood)
 
@@ -32,7 +32,7 @@ class ExactGPModel(gpytorch.models.ExactGP):
         covar_x = self.covar_module(x)
         return gpytorch.distributions.MultivariateNormal(mean_x, covar_x)
 
-datasets = ['challenger','fertility','concreteslump','servo','yacht','autompg','housing','stock','pendulum','energy','concrete','airfoil']
+datasets = ['fertility2','concreteslump2','servo2','machine2','yacht2','housing2','energy2']
 rmses =[]
 un_rmses =[]
 nlls = []

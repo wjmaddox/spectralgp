@@ -23,7 +23,7 @@ class ExactGPModel(gpytorch.models.ExactGP):
         covar_x = self.covar_module(x)
         return gpytorch.distributions.MultivariateNormal(mean_x, covar_x)
 
-datasets = ['challenger','fertility','concreteslump','servo','yacht','autompg','housing','stock','pendulum','energy','concrete','airfoil']
+datasets = ['fertility2','concreteslump2','servo2','machine2','yacht2','housing2','energy2']
 rmses =[]
 un_rmses =[]
 nlls = []

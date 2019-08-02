@@ -85,25 +85,27 @@ def main(argv, dataset, seed, iteration):
 
     data_mod.eval()
     data_lh.eval()
-    
+
     data_mod_means = torch.zeros_like(data_mod(test_x).mean)
     total_variance = torch.zeros_like(data_lh(data_mod(test_x)).variance)
-    
+
     test_rmse = 0.0
     unnorm_test_rmse = 0.0
     nll_sum = 0.0
     msll = 0.0
-    
+
     with torch.no_grad():
-        for x in range(0,alt_sampler.fgsampled[0].shape[-1]):
-            #print(alt_sampler.fhsampled[0].shape)
-            #exit()
-            
+        marg_samples_num = min(len(alt_sampler.fhsampled[0][0]), alt_sampler.fgsampled[0].shape[-1])
+
+        for x in range(0, marg_samples_num):
+            # This line must come first
+            data_mod.load_state_dict(alt_sampler.fhsampled[0][0][x]) # dim, ???, nsample
+
             for dim in range(0,in_dims):
                 data_mod.covar_module.set_latent_params(alt_sampler.fgsampled[dim][0, :, x], idx=dim)
-                
+
             # Verify this is the correct way to handle multidim train setting
-            
+
             data_mod.set_train_data(train_x, train_y) # to clear out the cache
             data_mod_means += data_mod(test_x).mean
 
@@ -111,22 +113,22 @@ def main(argv, dataset, seed, iteration):
             # y_var = f_var + data_noise
             y_var = y_preds.variance
             total_variance += (y_var + torch.pow(data_mod(test_x).mean,2))
-    
-    
-    meaned_data_mod_means = data_mod_means / float(alt_sampler.fgsampled[0].shape[-1])
-    total_variance = total_variance/float(alt_sampler.fgsampled[0].shape[-1]) - torch.pow(meaned_data_mod_means,2)
-    
+
+
+    meaned_data_mod_means = data_mod_means / float(marg_samples_num)
+    total_variance = total_variance/float(marg_samples_num) - torch.pow(meaned_data_mod_means,2)
+
     d = meaned_data_mod_means - test_y
     du = d * y_std
 
     test_rmse = torch.sqrt(torch.mean(torch.pow(d, 2)))
     unnorm_test_rmse = torch.sqrt(torch.mean(torch.pow(du, 2)))
-    
+
     nll = 0.5 * torch.log(2. * math.pi * total_variance) +  torch.pow((meaned_data_mod_means - test_y),2)/(2. * total_variance)
     sll = nll - (0.5 * torch.log(2. * math.pi * torch.pow(y_std_train, 2)) +  torch.pow((torch.mean(train_y) - test_y),2)/(2. * torch.pow(y_std_train, 2)))
     msll += torch.mean(sll)
     nll_sum += nll.sum()
-    
+
     print("Normalised RMSE: {}".format(test_rmse))
     print("Unnormalised RMSE: {}".format(unnorm_test_rmse))
     print("Summed NLL: {}".format(nll_sum))
