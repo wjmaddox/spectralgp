@@ -23,7 +23,8 @@ class ProductSpectralGPKernel(ProductKernel):
             for d in range(1, train_x.size(-1)):
                 self.kernels[d].latent_mod = self.kernels[0].latent_mod
                 self.kernels[d].latent_lh = self.kernels[0].latent_lh
-                self.kernels[d].latent_params = self.kernels[0].latent_params
+                #self.kernels[d].latent_params = self.kernels[0].latent_params
+                self.kernels[d].latent_params = self.kernels[d].latent_params # different latent params across dimensions?? maybe
                 max_omega = self.kernels[0].omega[-1]
                 max_omega_idk = 0
                 for idk,_ in enumerate(self.kernels):

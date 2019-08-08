@@ -34,6 +34,7 @@ def plot_kernel(alt_sampler, data_mod, dataset):
         plt.legend(loc=1)
         plt.grid(alpha = 0.5)
         plt.savefig('{}_sampled_kernels.png'.format(dataset))
+        plt.show()
         plt.close()
         #plt.show()
 

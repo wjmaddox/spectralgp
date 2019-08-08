@@ -75,9 +75,9 @@ def main(argv, dataset, seed, iteration):
     ################################
     ## set up alternating sampler ##
     ################################
-    
+
     alt_sampler = spectralgp.samplers.AlternatingSampler(
-    [data_mod], [data_lh], 
+    [data_mod], [data_lh],
     spectralgp.sampling_factories.ss_factory, [spectralgp.sampling_factories.ess_factory],
     totalSamples=args.iters, numInnerSamples=args.ess_iters, numOuterSamples=args.optim_iters, num_dims=in_dims
     )
@@ -99,7 +99,7 @@ def main(argv, dataset, seed, iteration):
 
         for x in range(0, marg_samples_num):
             # This line must come first
-            data_mod.load_state_dict(alt_sampler.fhsampled[0][0][x]) # dim, ???, nsample
+            #data_mod.load_state_dict(alt_sampler.fhsampled[0][0][x]) # dim, ???, nsample
 
             for dim in range(0,in_dims):
                 data_mod.covar_module.set_latent_params(alt_sampler.fgsampled[dim][0, :, x], idx=dim)
@@ -133,7 +133,7 @@ def main(argv, dataset, seed, iteration):
     print("Unnormalised RMSE: {}".format(unnorm_test_rmse))
     print("Summed NLL: {}".format(nll_sum))
     print("MSLL: {}".format(msll))
-    
+
     plot_kernel(alt_sampler, data_mod, dataset)
 
     del data_lh
