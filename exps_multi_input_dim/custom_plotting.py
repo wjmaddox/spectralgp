@@ -8,7 +8,7 @@ import numpy as np
 
 
 
-def plot_kernel(alt_sampler, data_mod, dataset):
+def plot_kernel(alt_sampler, data_mod, dataset, mlatent):
     last_samples = min(10, alt_sampler.gsampled[0].size(1))
     with torch.no_grad():
         # preprocess the spectral samples #
@@ -28,12 +28,12 @@ def plot_kernel(alt_sampler, data_mod, dataset):
         plt.plot(tau, plt_kernels[:, 0], color=colors[1], alpha=0.5,
                 label="Sampled Kernels")
         plt.plot(tau, plt_kernels, color=colors[1], alpha=0.5)
-        plt.ylabel("K(tau)", fontsize=14)
+        plt.ylabel("k(tau)", fontsize=14)
         plt.xlabel("tau", fontsize=14)
-        plt.title("{} Kernels".format(dataset), fontsize=20)
+        plt.title("{} kernels; {} latent gps".format(dataset, mlatent), fontsize=20)
         plt.legend(loc=1)
         plt.grid(alpha = 0.5)
-        plt.savefig('{}_sampled_kernels.png'.format(dataset))
+        plt.savefig('{}_{}_sampled_kernels.png'.format(dataset, mlatent))
         plt.show()
         plt.close()
         #plt.show()

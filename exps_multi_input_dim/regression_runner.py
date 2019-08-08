@@ -26,6 +26,33 @@ import traceback
 
 torch.set_default_dtype(torch.float64)
 
+def model_average(data_mod, data_lh, alt_sampler, train_x, train_y, test_x, in_dims, state="full"):
+    data_mod.eval()
+    data_lh.eval()
+    data_mod_means = torch.zeros_like(data_mod(test_x).mean)
+    total_variance = torch.zeros_like(data_lh(data_mod(test_x)).variance)
+    with torch.no_grad():
+        marg_samples_num = min(len(alt_sampler.fhsampled[0][0]), alt_sampler.fgsampled[0].shape[-1])
+        for x in range(0, marg_samples_num):
+            if state == "full":
+                print("kernels + thetas model averaging")
+                # This line must come first
+                data_mod.load_state_dict(alt_sampler.fhsampled[0][0][x]) # dim, ???, nsample
+            else:
+                print("kernels model averaging")
+            for dim in range(0,in_dims):
+                data_mod.covar_module.set_latent_params(alt_sampler.fgsampled[dim][0, :, x], idx=dim)
+            data_mod.set_train_data(train_x, train_y) # to clear out the cache
+            data_mod_means += data_mod(test_x).mean
+            y_preds = data_lh(data_mod(test_x))
+            # y_var = f_var + data_noise
+            y_var = y_preds.variance
+            total_variance += (y_var + torch.pow(data_mod(test_x).mean,2))
+    meaned_data_mod_means = data_mod_means / float(marg_samples_num)
+    total_variance = total_variance/float(marg_samples_num) - torch.pow(meaned_data_mod_means,2)
+    
+    return meaned_data_mod_means, total_variance
+
 def main(argv, dataset, seed, iteration):
     '''
     runs ESS with fixed hyperparameters:
@@ -36,6 +63,7 @@ def main(argv, dataset, seed, iteration):
     gen_pars = [args.lengthscale, args.period]
     linear_pars = [args.slope, args.intercept]
     mlatent = args.mlatent
+    model_avg = args.model_avg
 
     # TODO: set seed from main call
     torch.random.manual_seed(seed)
@@ -82,41 +110,13 @@ def main(argv, dataset, seed, iteration):
     totalSamples=args.iters, numInnerSamples=args.ess_iters, numOuterSamples=args.optim_iters, num_dims=in_dims
     )
     alt_sampler.run()
-
-    data_mod.eval()
-    data_lh.eval()
-
-    data_mod_means = torch.zeros_like(data_mod(test_x).mean)
-    total_variance = torch.zeros_like(data_lh(data_mod(test_x)).variance)
+    
+    meaned_data_mod_means, total_variance = model_average(data_mod, data_lh, alt_sampler, train_x, train_y, test_x, in_dims, model_avg)
 
     test_rmse = 0.0
     unnorm_test_rmse = 0.0
     nll_sum = 0.0
     msll = 0.0
-
-    with torch.no_grad():
-        marg_samples_num = min(len(alt_sampler.fhsampled[0][0]), alt_sampler.fgsampled[0].shape[-1])
-
-        for x in range(0, marg_samples_num):
-            # This line must come first
-            #data_mod.load_state_dict(alt_sampler.fhsampled[0][0][x]) # dim, ???, nsample
-
-            for dim in range(0,in_dims):
-                data_mod.covar_module.set_latent_params(alt_sampler.fgsampled[dim][0, :, x], idx=dim)
-
-            # Verify this is the correct way to handle multidim train setting
-
-            data_mod.set_train_data(train_x, train_y) # to clear out the cache
-            data_mod_means += data_mod(test_x).mean
-
-            y_preds = data_lh(data_mod(test_x))
-            # y_var = f_var + data_noise
-            y_var = y_preds.variance
-            total_variance += (y_var + torch.pow(data_mod(test_x).mean,2))
-
-
-    meaned_data_mod_means = data_mod_means / float(marg_samples_num)
-    total_variance = total_variance/float(marg_samples_num) - torch.pow(meaned_data_mod_means,2)
 
     d = meaned_data_mod_means - test_y
     du = d * y_std
@@ -134,7 +134,7 @@ def main(argv, dataset, seed, iteration):
     print("Summed NLL: {}".format(nll_sum))
     print("MSLL: {}".format(msll))
 
-    plot_kernel(alt_sampler, data_mod, dataset)
+    plot_kernel(alt_sampler, data_mod, dataset, mlatent)
 
     del data_lh
     del data_mod

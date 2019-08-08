@@ -39,6 +39,7 @@ def parse():
     parser.add_argument('--optim_iters', help='(int) number of optimization iterations',
                         default=1, type=int)
     parser.add_argument('--mlatent', help='(str) shared or separate latent gps', default='separate', type=str, choices=['shared', 'separate'])
+    parser.add_argument('--model_avg', help='(str) (partial) kernels or (full) kernels + theta model averaging', default='full', type=str, choices=['full', 'partial'])
     parser.add_argument('--omega_max', help='(float) maximum value of omega', default=8., type=float)
     return parser.parse_args()
 
