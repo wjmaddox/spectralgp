@@ -145,7 +145,7 @@ if __name__ == '__main__':
     args = utils.parse()
     if args.data != 'all':
         data_l = [args.data]
-        with open('log_file_{}_{}_latent.out'.format(args.mlatent, args.data), 'w+') as f:
+        with open('log_file_{}_{}_modelavg_{}_latent.out'.format(args.mlatent, args.data, args.model_avg), 'w+') as f:
             for dataset in data_l:
                 try:
                     test_rmses = []
