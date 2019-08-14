@@ -12,7 +12,8 @@ def read_data(dataset, only_scale = False, **kwargs):
     D = loadmat("./data/{}.mat".format(dataset))
     data = np.array(D['data'])
 
-    train_x, test_x, train_y, test_y = train_test_split(data[:, :-1], data[:, -1], test_size=0.10, random_state=np.random.randint(10000))
+#     train_x, test_x, train_y, test_y = train_test_split(data[:, :-1], data[:, -1], test_size=0.10, random_state=np.random.randint(10000))
+    train_x, test_x, train_y, test_y = train_test_split(data[:,0], data[:, -1], test_size=0.10, random_state=np.random.randint(10000))
 
     test_x = (test_x - np.mean(train_x, axis=0))/(np.std(train_x, axis=0)+1e-17)
     train_x = (train_x - np.mean(train_x, axis=0))/(np.std(train_x, axis=0)+1e-17)

@@ -3,11 +3,10 @@ import copy
 import time
 
 class AlternatingSampler:
-    def __init__(self, model, likelihood, outer_sampler_factory, inner_sampler_factory, totalSamples,
+    def __init__(self, model, outer_sampler_factory, inner_sampler_factory, totalSamples,
                 numInnerSamples, numOuterSamples, num_dims=1, num_tasks=1):
 
         self.model = model
-        self.likelihood = likelihood
 
         self.outer_sampler_factory = outer_sampler_factory
         self.inner_sampler_factory = inner_sampler_factory
@@ -40,7 +39,7 @@ class AlternatingSampler:
 
                 # run outer sampler factory
                 curr_outer_samples, _ = self.outer_sampler_factory(self.numOuterSamples,
-                                self.model, self.likelihood, idx).run()
+                                self.model).run()
 
                 # loop through every task
                 curr_task_list = []
@@ -49,7 +48,7 @@ class AlternatingSampler:
                     # run inner sampler factory
                     with torch.no_grad():
                         curr_task_samples, _ = self.inner_sampler_factory[task](self.numInnerSamples,
-                                self.model[task], self.likelihood[task], idx).run()
+                                self.model[task]).run()
 
                         curr_task_list.append(copy.deepcopy(curr_task_samples.unsqueeze(0)))
                 

@@ -1,6 +1,8 @@
 import math
 import torch
 import gpytorch
+from .means import LogRBFMean
+from .priors import GaussianProcessPrior
 
 # We will use the simplest form of GP model, exact inference
 # TODO: set transforms
@@ -96,6 +98,57 @@ class ProductKernelSpectralModel(gpytorch.models.ExactGP):
         return gpytorch.distributions.MultivariateNormal(mean_x, covar_x)
 
 
+class BayesianLinearRegressionModel(gpytorch.models.ExactGP):
+    def __init__(self, train_x, train_y, num_locs, omega_max, **kwargs):
+        super(BayesianLinearRegressionModel, self).__init__(train_x, train_y, gpytorch.likelihoods.GaussianLikelihood())
+        
+        omega = torch.linspace(1.e-10, omega_max, num_locs)
+        self.register_parameter('omega', torch.nn.Parameter(omega))
+        self.omega.requires_grad = False
+        self.omega.data = torch.linspace(1.e-10, omega_max, num_locs)
+        
+        
+        log_periodogram = torch.ones_like(self.omega)
+
+        self.num_locs = len(self.omega)
+        
+        self.register_parameter('latent_params', torch.nn.Parameter(torch.zeros(self.num_locs)))
+
+        self.latent_lh = gpytorch.likelihoods.GaussianLikelihood(noise_prior=gpytorch.priors.SmoothedBoxPrior(1e-8, 1e-3))
+        self.latent_mod = ExactGPModel(self.omega, log_periodogram, self.latent_lh, mean=LogRBFMean)
+
+        self.latent_mod.train()
+        self.latent_lh.train()
+
+        self.latent_params.data = self.latent_mod(self.omega).sample().detach()#log_periodogram
+        self.latent_params.requires_grad = False
+
+        # clear cache and reset training data
+        self.latent_mod.set_train_data(inputs = self.omega, targets=self.latent_params.data, strict=False)
+
+        # register prior for latent_params as latent mod
+        latent_prior = GaussianProcessPrior(self.latent_mod, self.latent_lh)
+        self.register_prior('latent_prior', latent_prior, lambda: self.latent_params)
+        
+        self.register_parameter('noise', torch.nn.Parameter(torch.randn(1,1)))
+
+
+    def forward(self, x):
+        # need to rearrange latent_params
+        #rearranged_latent_params = torch.zeros_like(x[0,:])
+        gp_exp_sample = torch.exp(self.latent_params)
+        rearranged_latent_params = []
+        for omg_id in range(0, gp_exp_sample.size(0)):
+            rearranged_latent_params.append(torch.sqrt(gp_exp_sample.data[omg_id]))
+            rearranged_latent_params.append(torch.sqrt(gp_exp_sample.data[omg_id]))
+        
+        rearranged_latent_params = torch.DoubleTensor(rearranged_latent_params)
+        
+        #print("Train X size:", x.size())
+        #print("Rearranged latent params size:", rearranged_latent_params.size())
+        #print(torch.matmul(x,rearranged_latent_params))
+        out = gpytorch.distributions.MultivariateNormal(torch.matmul(x,rearranged_latent_params), self.noise * torch.eye(x.size(0)))
+        return out
 
 class GridSpectralModel(gpytorch.models.ExactGP):
     def __init__(self, train_x, train_y, likelihood, omega=None, mean=gpytorch.means.ConstantMean, normalize = False, **kwargs):

@@ -26,25 +26,24 @@ import traceback
 
 torch.set_default_dtype(torch.float64)
 
-def model_average(data_mod, data_lh, alt_sampler, train_x, train_y, test_x, in_dims, state="full"):
+def model_average(data_mod, alt_sampler, train_x, train_y, test_x, in_dims, state="full"):
     data_mod.eval()
-    data_lh.eval()
     data_mod_means = torch.zeros_like(data_mod(test_x).mean)
-    total_variance = torch.zeros_like(data_lh(data_mod(test_x)).variance)
+    total_variance = torch.zeros_like(data_mod(test_x).variance)
     with torch.no_grad():
         marg_samples_num = min(len(alt_sampler.fhsampled[0][0]), alt_sampler.fgsampled[0].shape[-1])
         for x in range(0, marg_samples_num):
             if state == "full":
-                print("kernels + thetas model averaging")
+                print("densities + thetas model averaging")
                 # This line must come first
                 data_mod.load_state_dict(alt_sampler.fhsampled[0][0][x]) # dim, ???, nsample
             else:
-                print("kernels model averaging")
+                print("densities model averaging")
             for dim in range(0,in_dims):
-                data_mod.covar_module.set_latent_params(alt_sampler.fgsampled[dim][0, :, x], idx=dim)
+                data_mod.latent_params.data = alt_sampler.fgsampled[dim][0, :, x]
             data_mod.set_train_data(train_x, train_y) # to clear out the cache
             data_mod_means += data_mod(test_x).mean
-            y_preds = data_lh(data_mod(test_x))
+            y_preds = data_mod(test_x)
             # y_var = f_var + data_noise
             y_var = y_preds.variance
             total_variance += (y_var + torch.pow(data_mod(test_x).mean,2))
@@ -78,14 +77,6 @@ def main(argv, dataset, seed, iteration):
                                                             noise=args.noise)
     in_dims = 1 if train_x.dim() == 1 else train_x.size(1)
 
-    use_cuda = torch.cuda.is_available()
-    print('Cuda is available', use_cuda)
-    if use_cuda:
-        torch.set_default_tensor_type(torch.cuda.DoubleTensor)
-        train_x, train_y, test_x, test_y, y_std = train_x.cuda(), train_y.cuda(), test_x.cuda(), test_y.cuda(), y_std.cuda()
-        if gen_kern is not None:
-            gen_kern = gen_kern.cuda()
-
     ###########################################
     ## set up the spectral and latent models ##
     ###########################################
@@ -93,10 +84,71 @@ def main(argv, dataset, seed, iteration):
 
 
     shared = True if mlatent == 'shared' else False
-
-    data_lh = gpytorch.likelihoods.GaussianLikelihood(noise_prior=gpytorch.priors.SmoothedBoxPrior(1e-8, 1e-3))
-    data_mod = spectralgp.models.ProductKernelSpectralModel(train_x, train_y, data_lh, shared=shared,
-        normalize = False, symmetrize = False, num_locs = args.nomg, spacing=args.spacing, pretrain=False, omega_max = 8., nonstat = True)
+    
+    data_x = torch.linspace(0, 5, 500)
+    # True function is sin(2*pi*x) with Gaussian noise
+    data_y = (4. + torch.sin(data_x * (2 * math.pi))) + torch.randn(data_x.size()) * 0.2
+    
+    omega_max = 8.
+    omega_data = torch.linspace(1.e-10, omega_max, args.nomg)
+    omega_delta = omega_data[1] - omega_data[0]
+    phi_const = torch.sqrt(omega_delta/2.)
+    
+    mapped_data_x = []
+    for obs_id in range(data_x.size(0)):
+        mapped_data_x.append([])
+        for omg_id in range(0, args.nomg):
+            if omg_id == 0 or omg_id == args.nomg-1:
+                mapped_data_x[obs_id].append(torch.cos(2.0*math.pi*omega_data[omg_id]*data_x[obs_id]))
+                mapped_data_x[obs_id].append(torch.sin(2.0*math.pi*omega_data[omg_id]*data_x[obs_id]))
+            else:
+                mapped_data_x[obs_id].append(math.sqrt(2.0)*torch.cos(2.0*math.pi*omega_data[omg_id]*data_x[obs_id]))
+                mapped_data_x[obs_id].append(math.sqrt(2.0)*torch.sin(2.0*math.pi*omega_data[omg_id]*data_x[obs_id]))
+    
+    data_x = torch.DoubleTensor(mapped_data_x) * phi_const
+    
+    train_x = data_x[0:250,:]
+    train_y = data_y[0:250]
+    
+    test_x = data_x[250:,:]
+    test_y = data_y[250:]
+    
+    print(train_x.size(), train_y.size())
+    print(test_x.size(), test_y.size())
+    
+    
+#     mapped_train_x = []
+#     mapped_test_x = []
+#     for obs_id in range(train_x.size(0)):
+#         mapped_train_x.append([])
+#         for omg_id in range(0, args.nomg):
+#             if omg_id == 0 or omg_id == args.nomg-1:
+#                 mapped_train_x[obs_id].append(torch.cos(2.0*math.pi*omega_data[omg_id]*train_x[obs_id]))
+#                 mapped_train_x[obs_id].append(torch.sin(2.0*math.pi*omega_data[omg_id]*train_x[obs_id]))
+#             else:
+#                 mapped_train_x[obs_id].append(math.sqrt(2.0)*torch.cos(2.0*math.pi*omega_data[omg_id]*train_x[obs_id]))
+#                 mapped_train_x[obs_id].append(math.sqrt(2.0)*torch.sin(2.0*math.pi*omega_data[omg_id]*train_x[obs_id]))
+    
+#     for obs_id in range(test_x.size(0)):
+#         mapped_test_x.append([])
+#         for omg_id in range(0, args.nomg):
+#             if omg_id == 0 or omg_id == args.nomg-1:
+#                 mapped_test_x[obs_id].append(torch.cos(2.0*math.pi*omega_data[omg_id]*test_x[obs_id]))
+#                 mapped_test_x[obs_id].append(torch.sin(2.0*math.pi*omega_data[omg_id]*test_x[obs_id]))
+#             else:
+#                 mapped_test_x[obs_id].append(math.sqrt(2.0)*torch.cos(2.0*math.pi*omega_data[omg_id]*test_x[obs_id]))
+#                 mapped_test_x[obs_id].append(math.sqrt(2.0)*torch.sin(2.0*math.pi*omega_data[omg_id]*test_x[obs_id]))
+    
+#     train_x = torch.DoubleTensor(mapped_train_x)
+#     test_x = torch.DoubleTensor(mapped_test_x)
+    
+#     train_x = phi_const * train_x
+#     test_x = phi_const * test_x
+    
+    print(train_x.size(), train_y.size())
+    print(test_x.size(), test_y.size())
+    
+    data_mod = spectralgp.models.BayesianLinearRegressionModel(train_x, train_y, args.nomg, omega_max)
 
 
 
@@ -105,41 +157,43 @@ def main(argv, dataset, seed, iteration):
     ################################
 
     alt_sampler = spectralgp.samplers.AlternatingSampler(
-    [data_mod], [data_lh],
+    [data_mod],
     spectralgp.sampling_factories.ss_factory, [spectralgp.sampling_factories.ess_factory],
     totalSamples=args.iters, numInnerSamples=args.ess_iters, numOuterSamples=args.optim_iters, num_dims=in_dims
     )
     alt_sampler.run()
     
-    meaned_data_mod_means, total_variance = model_average(data_mod, data_lh, alt_sampler, train_x, train_y, test_x, in_dims, model_avg)
+    #meaned_data_mod_means, total_variance = model_average(data_mod, alt_sampler, train_x, train_y, test_x, in_dims, model_avg)
 
-    test_rmse = 0.0
-    unnorm_test_rmse = 0.0
-    nll_sum = 0.0
-    msll = 0.0
+    data_mod.eval()
 
-    d = meaned_data_mod_means - test_y
+    d = data_mod(test_x).mean - test_y
     du = d * y_std
-
+    
     test_rmse = torch.sqrt(torch.mean(torch.pow(d, 2)))
     unnorm_test_rmse = torch.sqrt(torch.mean(torch.pow(du, 2)))
 
-    nll = 0.5 * torch.log(2. * math.pi * total_variance) +  torch.pow((meaned_data_mod_means - test_y),2)/(2. * total_variance)
-    sll = nll - (0.5 * torch.log(2. * math.pi * torch.pow(y_std_train, 2)) +  torch.pow((torch.mean(train_y) - test_y),2)/(2. * torch.pow(y_std_train, 2)))
-    msll += torch.mean(sll)
-    nll_sum += nll.sum()
-
     print("Normalised RMSE: {}".format(test_rmse))
     print("Unnormalised RMSE: {}".format(unnorm_test_rmse))
-    print("Summed NLL: {}".format(nll_sum))
-    print("MSLL: {}".format(msll))
+    
+    print(data_x.size(), data_y.size())
+    print(train_x.size(), test_x.size(), data_x.size())
+    print(data_mod(data_x).mean)
 
-    plot_kernel(alt_sampler, data_mod, dataset, mlatent)
+    plt.plot(data_y.numpy(), label='data')
+    plt.plot(train_y.numpy(), marker='o', label='train')
+    #plt.plot(test_y.numpy(), marker='.', label='test')
+    plt.plot(data_mod(data_x).mean.detach().numpy(), marker='*', label='BLR')
+    plt.legend()
+    plt.savefig("BLR_out.png")
+    
+    print(data_mod(data_x).mean.detach().numpy())
+    #plot_kernel(alt_sampler, data_mod, dataset, mlatent)
 
-    del data_lh
     del data_mod
 
-    return float(test_rmse), float(unnorm_test_rmse), float(alt_sampler.total_time), float(nll_sum), float(msll)
+    #return float(test_rmse), float(unnorm_test_rmse), float(alt_sampler.total_time), float(nll_sum), float(msll)
+    return float(test_rmse), float(unnorm_test_rmse), float(alt_sampler.total_time), -1.0, -1.0
 
 if __name__ == '__main__':
     args = utils.parse()
@@ -153,7 +207,7 @@ if __name__ == '__main__':
                     times = []
                     nlls = []
                     mslls = []
-                    for experiment in range(10):
+                    for experiment in range(1):
                         torch.cuda.empty_cache()
                         t, nt, total_times, dnll, dmsll = main(sys.argv[1:], dataset, seed=np.random.randint(10000000), iteration=experiment)
                         test_rmses.append(t)

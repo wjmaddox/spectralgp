@@ -8,7 +8,7 @@ class MeanEllipticalSlice(EllipticalSliceSampler):
 
         mean_vector = dist.mean
 
-        demeaned_lnpdf = lambda g: lnpdf(g + mean_vector, *pdf_params)
+        demeaned_lnpdf = lambda g: lnpdf(g + mean_vector, pdf_params)
 
         demeaned_init = f_init - mean_vector
 
