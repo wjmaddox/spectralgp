@@ -99,13 +99,13 @@ class ProductKernelSpectralModel(gpytorch.models.ExactGP):
 
 
 class BayesianLinearRegressionModel(gpytorch.models.ExactGP):
-    def __init__(self, train_x, train_y, num_locs, omega_max, **kwargs):
+    def __init__(self, train_x, train_y, num_locs, omega_0 ,omega_max, **kwargs):
         super(BayesianLinearRegressionModel, self).__init__(train_x, train_y, gpytorch.likelihoods.GaussianLikelihood())
         
-        omega = torch.linspace(1.e-10, omega_max, num_locs)
+        omega = torch.linspace(omega_0, omega_max, num_locs)
         self.register_parameter('omega', torch.nn.Parameter(omega))
         self.omega.requires_grad = False
-        self.omega.data = torch.linspace(1.e-10, omega_max, num_locs)
+        self.omega.data = torch.linspace(omega_0, omega_max, num_locs)
         
         
         log_periodogram = torch.ones_like(self.omega)
