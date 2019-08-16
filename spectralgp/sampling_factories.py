@@ -21,7 +21,7 @@ def ess_factory(nsamples, data_mod):
 
     # define a function of the model and log density
     def ess_ell_builder(demeaned_logdens, data_mod):
-        with torch.no_grad(), gpytorch.settings.fast_computations(log_prob=False):
+        with torch.no_grad(), gpytorch.settings.fast_computations(covar_root_decomposition=False, log_prob=False, solves=False):
 
             data_mod.latent_params.data = demeaned_logdens
             data_mod.prediction_strategy = None
@@ -54,7 +54,7 @@ def ss_factory(nsamples, data_mod):
         latent_lh.train()
         latent_mod.train()
 
-        with gpytorch.settings.max_preconditioner_size(15), gpytorch.settings.cg_tolerance(1e-3), gpytorch.settings.max_cg_iterations(1000):
+        with gpytorch.settings.fast_computations(covar_root_decomposition=False, log_prob=False, solves=False):
             #loss = data_mll(data_mod(*data_mod.train_inputs), data_mod.train_targets)
             num_y = len(data_mod.train_targets)
             #print('P_y is: ', data_mod(*data_mod.train_inputs).log_prob(data_mod.train_targets)/num_y)
