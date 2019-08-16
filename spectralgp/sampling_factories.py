@@ -66,5 +66,8 @@ def ss_factory(nsamples, data_mod):
     ell_func = lambda h: ss_ell_builder(latent_mod, latent_lh, data_mod)
 
     pars_for_optimizer = list(data_mod.parameters())
+    for name, param in data_mod.named_parameters():
+        if param.requires_grad:
+            print(name, param.data)
 
     return SGD(pars_for_optimizer, ell_func, n_samples = nsamples, lr=1e-2)
