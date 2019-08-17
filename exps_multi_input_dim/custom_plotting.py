@@ -23,17 +23,22 @@ def plot_kernel(alt_sampler, data_mod, dataset, mlatent):
             plt_kernels[:, ii] = data_mod.covar_module(tau, torch.zeros(1,int(len(alt_sampler.gsampled)))).squeeze(1)
 
         plt_kernels = plt_kernels.detach().cpu().numpy()
+        lower_kern = np.percentile(plt_kernels, 2.5, 1)
+        upper_kern = np.percentile(plt_kernels, 97.5, 1)
+        
         tau = tau.cpu().numpy()
         colors = ["#eac100", "#5893d4", "#10316b", "#070d59"]
-        plt.plot(tau, plt_kernels[:, 0], color=colors[1], alpha=0.5,
-                label="Sampled Kernels")
-        plt.plot(tau, plt_kernels, color=colors[1], alpha=0.5)
-        plt.ylabel("k(tau)", fontsize=14)
-        plt.xlabel("tau", fontsize=14)
-        plt.title("{} kernels; {} latent gps".format(dataset, mlatent), fontsize=20)
-        plt.legend(loc=1)
+        plt.figure(figsize=(10,9))
+        plt.plot(tau[:,0], plt_kernels[:, 0], color=colors[1], alpha=0.7)
+        for i in range(1, plt_kernels.shape[1]):
+            plt.plot(tau[:,0], plt_kernels[:, i], color=colors[1], alpha=0.7)
+        plt.fill_between(tau[:,0], lower_kern, upper_kern, color="steelblue", alpha=0.1, label=r'$\pm 2$ SD')
+        plt.ylabel("Covariance", fontsize=22)
+        plt.xlabel("Tau", fontsize=22)
+        plt.title("{}".format(dataset), fontsize=26)
+        plt.legend(loc=1,prop={'size': 18})
         plt.grid(alpha = 0.5)
-        plt.savefig('{}_{}_sampled_kernels.png'.format(dataset, mlatent))
+        plt.savefig('{}_{}_sampled_posterior_kernels.pdf'.format(dataset, mlatent))
         plt.show()
         plt.close()
         #plt.show()
