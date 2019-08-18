@@ -57,9 +57,7 @@ def plot_prior_subkernel(in_dims, data_mod, dataset, mlatent):
     
     color=iter(cm.tab10(np.linspace(0,1,10)))        
     with torch.no_grad():
-        # preprocess the spectral samples #
-        data_mod.eval()
-        
+        # preprocess the spectral samples #        
         plt.figure(figsize=(10,9))
         for dim in range(in_dims):
             c = next(color)
@@ -146,7 +144,6 @@ def plot_prior_subkernel_individual(in_dims, data_mod, dataset, mlatent):
         
     with torch.no_grad():
         # preprocess the spectral samples #
-        data_mod.eval()
         
         for dim in range(in_dims):
             plt.figure(figsize=(10,9))
@@ -230,7 +227,6 @@ def plot_prior_kernel(in_dims, data_mod, dataset, mlatent):
     last_samples = 10
     with torch.no_grad():
         # preprocess the spectral samples #
-        data_mod.eval()
         
         tau = torch.stack([torch.linspace(0, 1.5, 600) for dimm in range(in_dims)], dim=1)
         plt_kernels = torch.zeros(tau[:,0].nelement(), last_samples+1)
