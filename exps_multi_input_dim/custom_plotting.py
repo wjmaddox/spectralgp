@@ -179,7 +179,6 @@ def plot_prior_subkernel_individual(in_dims, data_mod, dataset, mlatent):
 
 def plot_kernel(alt_sampler, data_mod, dataset, mlatent):
     last_samples = max(10, alt_sampler.gsampled[0].size(2))
-    print(last_samples)
     with torch.no_grad():
         # preprocess the spectral samples #
         data_mod.eval()
