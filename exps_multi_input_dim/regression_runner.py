@@ -138,7 +138,9 @@ def main(argv, dataset, seed, iteration):
     print("MSLL: {}".format(msll))
 
     plot_kernel(alt_sampler, data_mod, dataset, mlatent)
-
+    plot_subkernel(alt_sampler, data_mod, dataset, mlatent)
+    plot_subkernel_individual(alt_sampler, data_mod, dataset, mlatent)
+    
     del data_lh
     del data_mod
 

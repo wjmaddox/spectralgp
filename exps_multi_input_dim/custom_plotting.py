@@ -9,9 +9,9 @@ import numpy as np
 
 
 def plot_subkernel(alt_sampler, data_mod, dataset, mlatent):
-    last_samples = min(10, alt_sampler.gsampled[0].size(1))
+    last_samples = max(10, alt_sampler.gsampled[0].size(2))
     
-    color=iter(cm.tab10(np.linspace(0,1,last_samples)))
+    color=iter(cm.tab10(np.linspace(0,1,10)))
         
     with torch.no_grad():
         # preprocess the spectral samples #
@@ -34,7 +34,7 @@ def plot_subkernel(alt_sampler, data_mod, dataset, mlatent):
 
             tau = tau.cpu().numpy()
             plt.plot(tau[:,0], plt_kernels[:, 0], color=c, alpha=0.35)
-            for i in range(1, plt_kernels.shape[1]):
+            for i in range(last_samples-9, plt_kernels.shape[1]):
                 if i == plt_kernels.shape[1]-1:
                     plt.plot(tau[:,0], plt_kernels[:, i], linewidth=3.5, color=c, alpha=1.0, label=r'$d={}$'.format(dim))
                 else:
@@ -53,8 +53,7 @@ def plot_subkernel(alt_sampler, data_mod, dataset, mlatent):
 def plot_prior_subkernel(in_dims, data_mod, dataset, mlatent):
     last_samples = 10
     
-    color=iter(cm.tab10(np.linspace(0,1,last_samples)))
-        
+    color=iter(cm.tab10(np.linspace(0,1,10)))        
     with torch.no_grad():
         # preprocess the spectral samples #
         data_mod.eval()
@@ -78,7 +77,7 @@ def plot_prior_subkernel(in_dims, data_mod, dataset, mlatent):
 
             tau = tau.cpu().numpy()
             plt.plot(tau[:,0], plt_kernels[:, 0], color=c, alpha=0.35)
-            for i in range(1, plt_kernels.shape[1]):
+            for i in range(last_samples-9, plt_kernels.shape[1]):
                 if i == plt_kernels.shape[1]-1:
                     plt.plot(tau[:,0], plt_kernels[:, i], linewidth=3.5, color=c, alpha=1.0, label=r'$d={}$'.format(dim))
                 else:
@@ -94,9 +93,9 @@ def plot_prior_subkernel(in_dims, data_mod, dataset, mlatent):
         plt.close()
         
 def plot_subkernel_individual(alt_sampler, data_mod, dataset, mlatent):
-    last_samples = min(10, alt_sampler.gsampled[0].size(1))
+    last_samples = max(10, alt_sampler.gsampled[0].size(2))
     
-    color=iter(cm.tab10(np.linspace(0,1,last_samples)))
+    color=iter(cm.tab10(np.linspace(0,1,10)))
         
     with torch.no_grad():
         # preprocess the spectral samples #
@@ -119,7 +118,7 @@ def plot_subkernel_individual(alt_sampler, data_mod, dataset, mlatent):
 
             tau = tau.cpu().numpy()
             plt.plot(tau[:,0], plt_kernels[:, 0], color=c, alpha=0.35)
-            for i in range(1, plt_kernels.shape[1]):
+            for i in range(last_samples-9, plt_kernels.shape[1]):
                 if i == plt_kernels.shape[1]-1:
                     plt.plot(tau[:,0], plt_kernels[:, i], linewidth=3.5, color=c, alpha=1.0, label=r'$d={}$'.format(dim))
                 else:
@@ -137,7 +136,7 @@ def plot_subkernel_individual(alt_sampler, data_mod, dataset, mlatent):
 def plot_prior_subkernel_individual(in_dims, data_mod, dataset, mlatent):
     last_samples = 10
     
-    color=iter(cm.tab10(np.linspace(0,1,last_samples)))
+    color=iter(cm.tab10(np.linspace(0,1,10)))
         
     with torch.no_grad():
         # preprocess the spectral samples #
@@ -162,7 +161,7 @@ def plot_prior_subkernel_individual(in_dims, data_mod, dataset, mlatent):
 
             tau = tau.cpu().numpy()
             plt.plot(tau[:,0], plt_kernels[:, 0], color=c, alpha=0.35)
-            for i in range(1, plt_kernels.shape[1]):
+            for i in range(last_samples-9, plt_kernels.shape[1]):
                 if i == plt_kernels.shape[1]-1:
                     plt.plot(tau[:,0], plt_kernels[:, i], linewidth=3.5, color=c, alpha=1.0, label=r'$d={}$'.format(dim))
                 else:
@@ -179,7 +178,7 @@ def plot_prior_subkernel_individual(in_dims, data_mod, dataset, mlatent):
 
 
 def plot_kernel(alt_sampler, data_mod, dataset, mlatent):
-    last_samples = min(10, alt_sampler.gsampled[0].size(1))
+    last_samples = max(10, alt_sampler.gsampled[0].size(2))
     with torch.no_grad():
         # preprocess the spectral samples #
         data_mod.eval()
@@ -201,7 +200,7 @@ def plot_kernel(alt_sampler, data_mod, dataset, mlatent):
         colors = ["#eac100", "#5893d4", "#10316b", "#070d59"]
         plt.figure(figsize=(10,9))
         plt.plot(tau[:,0], plt_kernels[:, 0], color=colors[1], alpha=0.3)
-        for i in range(1, plt_kernels.shape[1]):
+        for i in range(last_samples-9, plt_kernels.shape[1]):
             if i == plt_kernels.shape[1]-1:
                 plt.plot(tau[:,0], plt_kernels[:, i], linewidth=3.5, color=colors[1], alpha=1.0)
             else:
@@ -243,7 +242,7 @@ def plot_prior_kernel(in_dims, data_mod, dataset, mlatent):
         colors = ["#eac100", "#5893d4", "#10316b", "#070d59"]
         plt.figure(figsize=(10,9))
         plt.plot(tau[:,0], plt_kernels[:, 0], color=colors[1], alpha=0.3)
-        for i in range(1, plt_kernels.shape[1]):
+        for i in range(last_samples-9, plt_kernels.shape[1]):
             if i == plt_kernels.shape[1]-1:
                 plt.plot(tau[:,0], plt_kernels[:, i], linewidth=3.5, color=colors[1], alpha=1.0)
             else:
