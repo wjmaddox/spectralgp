@@ -10,7 +10,8 @@ from spectralgp.samplers import AlternatingSampler
 from spectralgp.models import ExactGPModel, SpectralModel, ProductKernelSpectralModel
 
 from spectralgp.sampling_factories import ss_factory, ess_factory
-from custom_plotting import plot_kernel
+from custom_plotting import plot_kernel, plot_subkernel, plot_subkernel_individual, plot_prior_kernel, plot_prior_subkernel_individual, plot_prior_subkernel
+
 
 import data
 # from save_models import save_model_output
@@ -98,7 +99,9 @@ def main(argv, dataset, seed, iteration):
     data_mod = spectralgp.models.ProductKernelSpectralModel(train_x, train_y, data_lh, shared=shared,
         normalize = False, symmetrize = False, num_locs = args.nomg, spacing=args.spacing, pretrain=False, omega_max = 8., nonstat = True)
 
-
+    plot_prior_kernel(in_dims, data_mod, dataset, mlatent)
+    plot_prior_subkernel(in_dims, data_mod, dataset, mlatent)
+    plot_prior_subkernel_individual(in_dims, data_mod, dataset, mlatent)
 
     ################################
     ## set up alternating sampler ##
