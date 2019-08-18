@@ -27,10 +27,12 @@ def plot_subkernel(alt_sampler, data_mod, dataset, mlatent):
                 plt_kernels[:, ii] = data_mod.covar_module.kernels[dim](tau, torch.zeros(1,int(len(alt_sampler.gsampled)))).evaluate().squeeze(1)
           
             plt_kernels = plt_kernels.detach().cpu().numpy()
-            plt_kernels[:, last_samples] = np.mean(plt_kernels[:,0:-1],axis=1)
+            plt_kernels[:, last_samples] = np.mean(plt_kernels[:,0:-1], axis=1)
             
-            lower_kern = np.percentile(plt_kernels, 2.5, 1)
-            upper_kern = np.percentile(plt_kernels, 97.5, 1)
+            std_kern = np.std(plt_kernels[:,0:-1], axis=1)
+            
+            lower_kern = plt_kernels[:, last_samples] - 2.*std_kern
+            upper_kern = plt_kernels[:, last_samples] + 2.*std_kern
 
             tau = tau.cpu().numpy()
             plt.plot(tau[:,0], plt_kernels[:, 0], color=c, alpha=0.35)
@@ -72,8 +74,10 @@ def plot_prior_subkernel(in_dims, data_mod, dataset, mlatent):
             plt_kernels = plt_kernels.detach().cpu().numpy()
             plt_kernels[:, last_samples] = np.mean(plt_kernels[:,0:-1],axis=1)
             
-            lower_kern = np.percentile(plt_kernels, 2.5, 1)
-            upper_kern = np.percentile(plt_kernels, 97.5, 1)
+            std_kern = np.std(plt_kernels[:,0:-1], axis=1)
+            
+            lower_kern = plt_kernels[:, last_samples] - 2.*std_kern
+            upper_kern = plt_kernels[:, last_samples] + 2.*std_kern
 
             tau = tau.cpu().numpy()
             plt.plot(tau[:,0], plt_kernels[:, 0], color=c, alpha=0.35)
@@ -113,8 +117,10 @@ def plot_subkernel_individual(alt_sampler, data_mod, dataset, mlatent):
             plt_kernels = plt_kernels.detach().cpu().numpy()
             plt_kernels[:, last_samples] = np.mean(plt_kernels[:,0:-1],axis=1)
             
-            lower_kern = np.percentile(plt_kernels, 2.5, 1)
-            upper_kern = np.percentile(plt_kernels, 97.5, 1)
+            std_kern = np.std(plt_kernels[:,0:-1], axis=1)
+            
+            lower_kern = plt_kernels[:, last_samples] - 2.*std_kern
+            upper_kern = plt_kernels[:, last_samples] + 2.*std_kern
 
             tau = tau.cpu().numpy()
             plt.plot(tau[:,0], plt_kernels[:, 0], color=c, alpha=0.35)
@@ -156,8 +162,10 @@ def plot_prior_subkernel_individual(in_dims, data_mod, dataset, mlatent):
             plt_kernels = plt_kernels.detach().cpu().numpy()
             plt_kernels[:, last_samples] = np.mean(plt_kernels[:,0:-1],axis=1)
             
-            lower_kern = np.percentile(plt_kernels, 2.5, 1)
-            upper_kern = np.percentile(plt_kernels, 97.5, 1)
+            std_kern = np.std(plt_kernels[:,0:-1], axis=1)
+            
+            lower_kern = plt_kernels[:, last_samples] - 2.*std_kern
+            upper_kern = plt_kernels[:, last_samples] + 2.*std_kern
 
             tau = tau.cpu().numpy()
             plt.plot(tau[:,0], plt_kernels[:, 0], color=c, alpha=0.35)
@@ -193,8 +201,10 @@ def plot_kernel(alt_sampler, data_mod, dataset, mlatent):
 
         plt_kernels = plt_kernels.detach().cpu().numpy()
         plt_kernels[:, last_samples] = np.mean(plt_kernels[:,0:-1],axis=1)
-        lower_kern = np.percentile(plt_kernels, 2.5, 1)
-        upper_kern = np.percentile(plt_kernels, 97.5, 1)
+        std_kern = np.std(plt_kernels[:,0:-1], axis=1)
+            
+        lower_kern = plt_kernels[:, last_samples] - 2.*std_kern
+        upper_kern = plt_kernels[:, last_samples] + 2.*std_kern
         
         tau = tau.cpu().numpy()
         colors = ["#eac100", "#5893d4", "#10316b", "#070d59"]
@@ -235,8 +245,11 @@ def plot_prior_kernel(in_dims, data_mod, dataset, mlatent):
 
         plt_kernels = plt_kernels.detach().cpu().numpy()
         plt_kernels[:, last_samples] = np.mean(plt_kernels[:,0:-1],axis=1)
-        lower_kern = np.percentile(plt_kernels, 2.5, 1)
-        upper_kern = np.percentile(plt_kernels, 97.5, 1)
+        
+        std_kern = np.std(plt_kernels[:,0:-1], axis=1)
+            
+        lower_kern = plt_kernels[:, last_samples] - 2.*std_kern
+        upper_kern = plt_kernels[:, last_samples] + 2.*std_kern
         
         tau = tau.cpu().numpy()
         colors = ["#eac100", "#5893d4", "#10316b", "#070d59"]
