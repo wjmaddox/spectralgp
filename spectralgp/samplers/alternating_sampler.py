@@ -48,15 +48,21 @@ class AlternatingSampler:
                     print('Task:', task, "; Iteration", step)
                     # run inner sampler factory
                     with torch.no_grad():
-                        curr_task_samples, _ = self.inner_sampler_factory[task](self.numInnerSamples,
-                                self.model[task], self.likelihood[task], idx).run()
+                        if step == self.totalSamples-1:
+                            curr_task_samples, _ = self.inner_sampler_factory[task](500,
+                                    self.model[task], self.likelihood[task], idx).run()
 
-                        curr_task_list.append(copy.deepcopy(curr_task_samples.unsqueeze(0)))
+                            curr_task_list.append(copy.deepcopy(curr_task_samples.unsqueeze(0)))
+                            curr_inner_samples = torch.cat(curr_task_list, dim=0)
+                            inner_samples[in_dim].append(copy.deepcopy(curr_inner_samples))
+                        else:    
+                            curr_task_samples, _ = self.inner_sampler_factory[task](self.numInnerSamples,
+                                    self.model[task], self.likelihood[task], idx).run()
                 
-                curr_inner_samples = torch.cat(curr_task_list, dim=0)
+                #curr_inner_samples = torch.cat(curr_task_list, dim=0)
                 
                 #outer_samples[in_dim].append(copy.deepcopy(curr_outer_samples))
-                inner_samples[in_dim].append(copy.deepcopy(curr_inner_samples))
+                #inner_samples[in_dim].append(copy.deepcopy(curr_inner_samples))
 
                 if step == self.totalSamples - 1:
                     # use final (self.numInnerSamples) of ESS as kernels to average over
