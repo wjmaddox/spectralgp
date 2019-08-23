@@ -1,6 +1,7 @@
 import math
 import torch
 import gpytorch
+from gpytorch.lazy import lazify, delazify
 from .means import LogRBFMean
 from .priors import GaussianProcessPrior
 
@@ -150,6 +151,69 @@ class BayesianLinearRegressionModel(gpytorch.models.ExactGP):
         out = gpytorch.distributions.MultivariateNormal(torch.matmul(x,rearranged_latent_params), self.noise * torch.eye(x.size(0)))
         return out
 
+class FKL_KKM(gpytorch.models.ExactGP):
+    def __init__(self, train_x, train_y, n_clusters, shared, **kwargs):
+        from .kernels import ProductSpectralGPKernel
+        
+        super(FKL_KKM, self).__init__(train_x, train_y, gpytorch.likelihoods.GaussianLikelihood())
+        
+        self.covar_module = ProductSpectralGPKernel(train_x, train_y, shared, **kwargs)
+        
+        self.n_clusters = float(n_clusters)
+        self.n_samples_ = train_x.size(0)
+        self.dtens_n_samples_ = torch.tensor(self.n_samples_).double()
+        self.sample_weight_ = torch.ones(int(self.n_samples_))
+        self.labels_ = torch.randint(high=int(self.n_clusters), size=(int(self.n_samples_),))
+        dist = torch.zeros((int(self.n_samples_), int(self.n_clusters)))
+        self.within_distances_ = torch.zeros(int(self.n_clusters))
+     
+    def _compute_dist(self, K, dist, within_distances, update_within):
+        """Compute a n_samples x n_clusters distance matrix using the 
+        kernel trick."""
+        sw = self.sample_weight_
+
+        for j in range(int(self.n_clusters)):
+            mask = self.labels_ == j
+
+            if torch.sum(mask) == 0:
+                raise ValueError("Empty cluster found, try smaller n_cluster.")
+
+            denom = sw[mask].sum()
+            denomsq = denom * denom
+           
+            if update_within:
+                KK = K[mask][:, mask]  # K[mask, mask] does not work.
+                dist_j = torch.sum(torch.ger(sw[mask], sw[mask]) * KK / denomsq)
+                within_distances[j] = dist_j
+                dist[:, j] += dist_j
+            else:
+                dist[:, j] += within_distances[j]
+
+            dist[:, j] -= 2 * torch.sum(sw[mask] * K[:, mask], dim=1) / denom
+            
+    def forward(self, x, iters=1):
+        K = delazify(self.covar_module(x)) 
+        #print(K)
+        for it in range(iters):
+            dist = torch.zeros((int(self.n_samples_), int(self.n_clusters)))
+            #print(dist)
+            self._compute_dist(K, dist, self.within_distances_,
+                               update_within=True)
+            #print(dist)
+            labels_old = self.labels_
+            self.labels_ = torch.argmin(dist,dim=1)
+
+            # Compute the number of samples whose cluster did not change 
+            # since last iteration.
+            n_same = torch.sum((self.labels_ - labels_old) == 0)
+
+        self.X_fit_ = x
+        #print(n_same, self.dtens_n_samples_)
+        temp_dist = torch.mul(dist, dist)
+        print(1.-(n_same)/self.dtens_n_samples_) # or this loss????
+        return temp_dist.min(dim=1)[0].sum()
+        #return 1.-(n_same)/self.dtens_n_samples_  # doesnt exactly make sense in terms of minimising distance
+        
 class GridSpectralModel(gpytorch.models.ExactGP):
     def __init__(self, train_x, train_y, likelihood, omega=None, mean=gpytorch.means.ConstantMean, normalize = False, **kwargs):
         super(GridSpectralModel, self).__init__(train_x, train_y, likelihood)

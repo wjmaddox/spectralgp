@@ -39,7 +39,7 @@ class AlternatingSampler:
 
                 # run outer sampler factory
                 curr_outer_samples, _ = self.outer_sampler_factory(self.numOuterSamples,
-                                self.model).run()
+                                self.model, idx).run()
 
                 # loop through every task
                 curr_task_list = []
@@ -48,7 +48,7 @@ class AlternatingSampler:
                     # run inner sampler factory
                     with torch.no_grad():
                         curr_task_samples, _ = self.inner_sampler_factory[task](self.numInnerSamples,
-                                self.model[task]).run()
+                                self.model[task], idx).run()
 
                         curr_task_list.append(copy.deepcopy(curr_task_samples.unsqueeze(0)))
                 
