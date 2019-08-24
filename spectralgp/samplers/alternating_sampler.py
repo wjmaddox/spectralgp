@@ -1,6 +1,8 @@
 import torch
 import copy
 import time
+import matplotlib.pyplot as plt
+
 
 class AlternatingSampler:
     def __init__(self, model, outer_sampler_factory, inner_sampler_factory, totalSamples,
@@ -26,6 +28,12 @@ class AlternatingSampler:
         #demeaned_inner_samples = [[] for x in range(self.num_dims)]
         final_inner_samples = [[] for x in range(self.num_dims)]
         inner_samples = [[] for x in range(self.num_dims)]
+        
+        train = self.model[0].train_inputs
+        plt.figure()
+        plt.scatter(train[0][:,0], train[0][:,1], c=self.model[0].labels_)
+        plt.show()
+        plt.close()
 
         for step in range(self.totalSamples):
             ts =  time.time()
@@ -49,7 +57,14 @@ class AlternatingSampler:
                     with torch.no_grad():
                         curr_task_samples, _ = self.inner_sampler_factory[task](self.numInnerSamples,
                                 self.model[task], idx).run()
-
+                        
+                        self.model[task](*self.model[task].train_inputs, iters=1, update_labels=True)
+                        train = self.model[task].train_inputs
+                        plt.figure()
+                        plt.scatter(train[0][:,0], train[0][:,1], c=self.model[task].labels_)
+                        plt.show()
+                        plt.close()
+                        
                         curr_task_list.append(copy.deepcopy(curr_task_samples.unsqueeze(0)))
                 
                 curr_inner_samples = torch.cat(curr_task_list, dim=0)

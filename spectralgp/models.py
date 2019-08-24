@@ -191,7 +191,7 @@ class FKL_KKM(gpytorch.models.ExactGP):
 
             dist[:, j] -= 2 * torch.sum(sw[mask] * K[:, mask], dim=1) / denom
             
-    def forward(self, x, iters=1):
+    def forward(self, x, iters=1, update_labels=False):
         K = delazify(self.covar_module(x)) 
         #print(K)
         for it in range(iters):
@@ -200,20 +200,25 @@ class FKL_KKM(gpytorch.models.ExactGP):
             self._compute_dist(K, dist, self.within_distances_,
                                update_within=True)
             #print(dist)
-            labels_old = self.labels_
-            self.labels_ = torch.argmin(dist,dim=1)
-
-            # Compute the number of samples whose cluster did not change 
-            # since last iteration.
-            n_same = torch.sum((self.labels_ - labels_old) == 0)
-
+            if update_labels:
+                labels_old = self.labels_
+                self.labels_ = torch.argmin(dist,dim=1)
+                # Compute the number of samples whose cluster did not change 
+                # since last iteration.
+                n_same = torch.sum((self.labels_ - labels_old) == 0)
+            else:
+                n_same = torch.sum((torch.argmin(dist,dim=1) - self.labels_) == 0)
+                
         self.X_fit_ = x
         #print(n_same, self.dtens_n_samples_)
         temp_dist = torch.mul(dist, dist)
-        print(1.-(n_same)/self.dtens_n_samples_) # or this loss????
-        return temp_dist.min(dim=1)[0].sum()
-        #return 1.-(n_same)/self.dtens_n_samples_  # doesnt exactly make sense in terms of minimising distance
         
+        for i in range(int(self.dtens_n_samples_)):
+            temp_dist[i,:] = temp_dist[i,:]/temp_dist[i,:].sum()
+        
+        #return temp_dist.sum()
+        return temp_dist.min(dim=1)[0].sum()
+        #return torch.zeros((1,1))
 class GridSpectralModel(gpytorch.models.ExactGP):
     def __init__(self, train_x, train_y, likelihood, omega=None, mean=gpytorch.means.ConstantMean, normalize = False, **kwargs):
         super(GridSpectralModel, self).__init__(train_x, train_y, likelihood)

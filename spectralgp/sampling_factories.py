@@ -26,7 +26,7 @@ def ess_factory(nsamples, data_mod, idx=None):
             data_mod.covar_module.set_latent_params(demeaned_logdens, idx)
             data_mod.prediction_strategy = None
 
-            loss = data_mod(*data_mod.train_inputs)
+            loss = data_mod(*data_mod.train_inputs, iters=1, update_labels=False)
             return loss
 
     # creating model
@@ -58,17 +58,17 @@ def ss_factory(nsamples, data_mod, idx = None):
         with gpytorch.settings.fast_computations(covar_root_decomposition=False, log_prob=False, solves=False):
             #loss = data_mll(data_mod(*data_mod.train_inputs), data_mod.train_targets)
             #num_y = len(data_mod.train_targets)
-            print(data_mod(*data_mod.train_inputs))
+            #print(data_mod(*data_mod.train_inputs))
             #print(data_mod.latent_prior.log_prob(data_mod.latent_params))#/num_y)
-            loss = data_mod(*data_mod.train_inputs) + data_mod.covar_module.kernels[idx].latent_prior.log_prob(data_mod.covar_module.kernels[idx].latent_params)#/num_y
-            #print('Loss is: ', loss)
+            loss = data_mod(*data_mod.train_inputs, iters=1, update_labels=False) + data_mod.covar_module.kernels[idx].latent_prior.log_prob(data_mod.covar_module.kernels[idx].latent_params)#/num_y
+            print('Loss is: ', loss)
             return loss, data_mod.state_dict()
 
     ell_func = lambda h: ss_ell_builder(latent_mod, latent_lh, data_mod)
 
     pars_for_optimizer = list(data_mod.parameters())
-    for name, param in data_mod.named_parameters():
-        if param.requires_grad:
-            print(name, param.data)
+    #for name, param in data_mod.named_parameters():
+    #    if param.requires_grad:
+    #        print(name, param.data)
 
     return SGD(pars_for_optimizer, ell_func, n_samples = nsamples, lr=1e-2)
