@@ -11,7 +11,7 @@ Please cite our work if you find it useful:
 @article{benton_fkl_2019,
   title={Function Space Distributions over Kernels},
   author={Benton, Gregory, Maddox, Wesley, Salkey, Jayson, Albinati, Julio, and Wilson, Andrew Gordon},
-  journal={ICML Time Series Workshop},
+  journal={Advances in Neural Information Processing Systems},
   year={2019}
 }
 ```
