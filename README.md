@@ -4,16 +4,18 @@ This repository contains a GPyTorch implementation of functional kernel learning
 
 [Function-Space Distributions over Kernels](http://roseyu.com/time-series-workshop/submissions/2019/timeseries-ICML19_paper_52.pdf)
 
-by [Gregory Benton](https://g-benton.github.io/), [Wesley Maddox](https://wjmaddox.github.io), [Jayson Salkey](https://www.cs.cornell.edu/~salk/), Julio Albinati, and [Andrew Gordon Wilson](https://people.orie.cornell.edu/andrew/).
+by [Gregory Benton](https://g-benton.github.io/), [Wesley Maddox](https://wjmaddox.github.io), [Jayson Salkey](https://cs.nyu.edu/~jps777/), Julio Albinati, and [Andrew Gordon Wilson](https://cims.nyu.edu/~andrewgw/).
 
 Please cite our work if you find it useful:
 ```
-@article{benton_fkl_2019,
-  title={Function Space Distributions over Kernels},
-  author={Benton, Gregory, Maddox, Wesley, Salkey, Jayson, Albinati, Julio, and Wilson, Andrew Gordon},
-  journal={Advances in Neural Information Processing Systems},
-  year={2019}
-}
+@inproceedings{benton_function-space_2019,
+        title = {Function-space {Distributions} over {Kernels}},
+        language = {en},
+        booktitle = {Advances in {Neural} {Information} {Processing} {Systems}},
+        author = {Benton, Greg and Salkey, Jayson and Maddox, Wesley and Albinati, Julio and Wilson, Andrew Gordon},
+        year = {2019},
+        pages = {8},
+        }
 ```
 
 ## Introduction
