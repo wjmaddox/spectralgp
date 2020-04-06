@@ -110,10 +110,19 @@ def main(argv, dataset, seed, iteration):
     ## set up alternating sampler ##
     ################################
 
+    #alt_sampler = spectralgp.samplers.AlternatingSampler(
+    #[data_mod], [data_lh],
+    #spectralgp.sampling_factories.ss_factory, [spectralgp.sampling_factories.ess_factory],
+    #totalSamples=args.iters, numInnerSamples=args.ess_iters, numOuterSamples=args.optim_iters, num_dims=in_dims, num_tasks=1, lr=0.01) 
+
     alt_sampler = spectralgp.samplers.AlternatingSampler(
-    [data_mod], [data_lh],
+    [data_mod], [data_lh], 
     spectralgp.sampling_factories.ss_factory, [spectralgp.sampling_factories.ess_factory],
-    totalSamples=args.iters, numInnerSamples=args.ess_iters, numOuterSamples=args.optim_iters, num_dims=in_dims, num_tasks=1, lr=0.01)
+    totalSamples=args.iters, numInnerSamples=args.ess_iters, numOuterSamples=args.optim_iters,
+    num_dims=in_dims
+    )
+
+
     alt_sampler.run()
 
     meaned_data_mod_means, total_variance = model_average(data_mod, data_lh, alt_sampler, train_x, train_y, test_x, in_dims, model_avg)
