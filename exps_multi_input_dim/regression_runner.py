@@ -6,10 +6,13 @@ import numpy.linalg as linalg
 
 import spectralgp
 
-from spectralgp.samplers import AlternatingSampler, AlternatingSamplerMultiDim
+from spectralgp.samplers import AlternatingSampler
 from spectralgp.models import ExactGPModel, SpectralModel, ProductKernelSpectralModel
 
 from spectralgp.sampling_factories import ss_factory, ess_factory
+from custom_plotting import plot_subkernel, plot_prior_subkernel
+
+
 
 import data
 # from save_models import save_model_output
@@ -25,7 +28,36 @@ import traceback
 
 torch.set_default_dtype(torch.float64)
 
-def main(argv, dataset, seed=88):
+def model_average(data_mod, data_lh, alt_sampler, train_x, train_y, test_x, in_dims, state="partial"):
+    state = "partial"
+    data_mod.eval()
+    data_lh.eval()
+    data_mod_means = torch.zeros_like(data_mod(test_x).mean)
+    total_variance = torch.zeros_like(data_lh(data_mod(test_x)).variance)
+    with torch.no_grad():
+        #marg_samples_num = min(len(alt_sampler.fhsampled[0][0]), alt_sampler.fgsampled[0].shape[-1])
+        marg_samples_num = alt_sampler.fgsampled[0].shape[-1]
+        for x in range(0, marg_samples_num):
+            if state == "full":
+                print("kernels + thetas model averaging")
+                # This line must come first
+                data_mod.load_state_dict(alt_sampler.fhsampled[0][0][x]) # dim, ???, nsample
+            else:
+                print("kernels model averaging")
+            for dim in range(0,in_dims):
+                data_mod.covar_module.set_latent_params(alt_sampler.fgsampled[dim][0, :, x], idx=dim)
+            data_mod.set_train_data(train_x, train_y) # to clear out the cache
+            data_mod_means += data_mod(test_x).mean
+            y_preds = data_lh(data_mod(test_x))
+            # y_var = f_var + data_noise
+            y_var = y_preds.variance
+            total_variance += (y_var + torch.pow(data_mod(test_x).mean,2))
+    meaned_data_mod_means = data_mod_means / float(marg_samples_num)
+    total_variance = total_variance/float(marg_samples_num) - torch.pow(meaned_data_mod_means,2)
+
+    return meaned_data_mod_means, total_variance
+
+def main(argv, dataset, seed, iteration):
     '''
     runs ESS with fixed hyperparameters:
     run with -h for CL arguments description
@@ -35,6 +67,7 @@ def main(argv, dataset, seed=88):
     gen_pars = [args.lengthscale, args.period]
     linear_pars = [args.slope, args.intercept]
     mlatent = args.mlatent
+    model_avg = args.model_avg
 
     # TODO: set seed from main call
     torch.random.manual_seed(seed)
@@ -67,49 +100,48 @@ def main(argv, dataset, seed=88):
 
     data_lh = gpytorch.likelihoods.GaussianLikelihood(noise_prior=gpytorch.priors.SmoothedBoxPrior(1e-8, 1e-3))
     data_mod = spectralgp.models.ProductKernelSpectralModel(train_x, train_y, data_lh, shared=shared,
-        normalize = False, symmetrize = False, num_locs = args.nomg, spacing=args.spacing, pretrain=False, omega_max = 8., nonstat = True)
-    #data_lh.raw_noise = torch.tensor(-3.5)
-    ###############################
-    ## set up sampling factories ##
-    ###############################
+        normalize=False, symmetrize=False, num_locs=args.nomg, spacing=args.spacing, period_factor=36.)
 
-    ess_fact = lambda nsamples, ide : spectralgp.sampling_factories.ess_factory(nsamples, data_mod, data_lh, ide)
-
-    ss_fact = lambda nsamples, ide : spectralgp.sampling_factories.ss_factory(nsamples, data_mod, data_lh, ide)
-
+    #plot_prior_kernel(in_dims, data_mod, dataset, mlatent)
+    plot_prior_subkernel(in_dims, data_mod, dataset, mlatent)
+    #plot_prior_subkernel_individual(in_dims, data_mod, dataset, mlatent)
 
     ################################
     ## set up alternating sampler ##
     ################################
 
-    alt_sampler = spectralgp.samplers.AlternatingSamplerMultiDim(ss_fact, ess_fact,
-                        totalSamples=args.iters,
-                        numInnerSamples=args.ess_iters,
-                        numOuterSamples=args.optim_iters,
-                        in_dims=in_dims)
-
+    alt_sampler = spectralgp.samplers.AlternatingSampler(
+    [data_mod], [data_lh],
+    spectralgp.sampling_factories.ss_factory, [spectralgp.sampling_factories.ess_factory],
+    totalSamples=args.iters, numInnerSamples=args.ess_iters, numOuterSamples=args.optim_iters, num_dims=in_dims, num_tasks=1, lr=0.01)
     alt_sampler.run()
 
-    data_mod.eval()
-    data_lh.eval()
-    d = data_mod(test_x).mean - test_y
+    meaned_data_mod_means, total_variance = model_average(data_mod, data_lh, alt_sampler, train_x, train_y, test_x, in_dims, model_avg)
+
+    test_rmse = 0.0
+    unnorm_test_rmse = 0.0
+    nll_sum = 0.0
+    msll = 0.0
+
+    d = meaned_data_mod_means - test_y
     du = d * y_std
 
     test_rmse = torch.sqrt(torch.mean(torch.pow(d, 2)))
     unnorm_test_rmse = torch.sqrt(torch.mean(torch.pow(du, 2)))
+
+    nll = 0.5 * torch.log(2. * math.pi * total_variance) +  torch.pow((meaned_data_mod_means - test_y),2)/(2. * total_variance)
+    sll = nll - (0.5 * torch.log(2. * math.pi * torch.pow(y_std_train, 2)) +  torch.pow((torch.mean(train_y) - test_y),2)/(2. * torch.pow(y_std_train, 2)))
+    msll += torch.mean(sll)
+    nll_sum += nll.sum()
+
     print("Normalised RMSE: {}".format(test_rmse))
     print("Unnormalised RMSE: {}".format(unnorm_test_rmse))
-
-    y_preds = data_lh(data_mod(test_x))
-    # y_var = f_var + data_noise
-    y_var = y_preds.variance
-
-    nll = 0.5 * torch.log(2. * math.pi * y_var) +  torch.pow((data_mod(test_x).mean - test_y),2)/(2. * y_var)
-    sll = nll - (0.5 * torch.log(2. * math.pi * torch.pow(y_std_train, 2)) +  torch.pow((torch.mean(train_y) - test_y),2)/(2. * torch.pow(y_std_train, 2)))
-    msll = torch.mean(sll)
-    nll_sum = nll.sum()
     print("Summed NLL: {}".format(nll_sum))
     print("MSLL: {}".format(msll))
+
+    #plot_kernel(alt_sampler, data_mod, dataset, mlatent)
+    plot_subkernel(alt_sampler, data_mod, dataset, mlatent)
+    #plot_subkernel_individual(alt_sampler, data_mod, dataset, mlatent)
 
     del data_lh
     del data_mod
@@ -119,11 +151,8 @@ def main(argv, dataset, seed=88):
 if __name__ == '__main__':
     args = utils.parse()
     if args.data != 'all':
-        # data_l = ['fertility2', 'concreteslump2', 'servo2', 'machine2', 'yacht2', 'housing2', 'energy2']
-        # data_l = ['yacht2','housing2','energy2']
-        # data_l = ['concreteslump2']
         data_l = [args.data]
-        with open('log_file_{}_{}_latent.out'.format(args.mlatent, args.data), 'w+') as f:
+        with open('log_file_{}_{}_modelavg_{}_latent.out'.format(args.mlatent, args.data, args.model_avg), 'w+') as f:
             for dataset in data_l:
                 try:
                     test_rmses = []
@@ -133,7 +162,7 @@ if __name__ == '__main__':
                     mslls = []
                     for experiment in range(10):
                         torch.cuda.empty_cache()
-                        t, nt, total_times, dnll, dmsll = main(sys.argv[1:], dataset, seed=np.random.randint(10000000))
+                        t, nt, total_times, dnll, dmsll = main(sys.argv[1:], dataset, seed=np.random.randint(10000000), iteration=experiment)
                         test_rmses.append(t)
                         unnorm_test_rmses.append(nt)
                         times.append(total_times)
