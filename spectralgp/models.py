@@ -65,7 +65,7 @@ class LatentGPModel(gpytorch.models.ExactGP):
 
 class SpectralModel(gpytorch.models.ExactGP):
     def __init__(self, train_x, train_y, likelihood, **kwargs):
-        from spectralgp.kernels import SpectralGPKernel
+        from .kernels import SpectralGPKernel
 
         super(SpectralModel, self).__init__(train_x, train_y, likelihood)
 
