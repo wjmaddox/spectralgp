@@ -94,7 +94,7 @@ def main(argv, seed=424):
     # data model #
     data_lh = gpytorch.likelihoods.GaussianLikelihood(noise_prior=gpytorch.priors.SmoothedBoxPrior(1e-8, 1e-3))
     data_mod = spectralgp.models.SpectralModel(train_x, train_y, data_lh, omega=omega, normalize = False,
-                            symmetrize = False, transform=utils.link_function)
+                            symmetrize = False, transform=torch.exp)
     data_lh.raw_noise = torch.tensor(-3.5)
 
     # latent model #
