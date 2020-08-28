@@ -52,6 +52,7 @@ def parse():
                         default='False', type=bool)
     parser.add_argument('--optim_iters', help='(int) number of optimization iterations',
                         default=1, type=int)
+    parser.add_argument('--omega_max', help='(float) maximum value of omega', default=6., type=float)
     parser.add_argument('--save', help='(bool) save model output (samples and model and omega)?',
                         default=False, type=bool)
     return parser.parse_args()
@@ -72,6 +73,8 @@ def main(argv, seed=424):
     ##########################################
     ## options ##
     # load data
+    torch.set_default_tensor_type(torch.DoubleTensor)
+
     train_x, train_y, test_x, test_y, gen_kern = data.read_data(args.data, nx=args.nx, gen_pars=gen_pars,
                                                             linear_pars=linear_pars, spacing='even')
     use_cuda = torch.cuda.is_available()
@@ -84,60 +87,31 @@ def main(argv, seed=424):
     ###########################################
     ## set up the spectral and latent models ##
     ###########################################
-    # comput empirical spectral density and omega range
-    omega, den = utils.spectral_init(train_x, train_y, args.spacing, num_freq=args.nomg,
-            omega_lim=(0., 1.3)
-            )
-    # omega = omega.squeeze()
-    g_init = torch.tensor(den).log()
-
-    # data model #
+    ## copied from greg's notebook
     data_lh = gpytorch.likelihoods.GaussianLikelihood(noise_prior=gpytorch.priors.SmoothedBoxPrior(1e-8, 1e-3))
-    data_mod = spectralgp.models.SpectralModel(train_x, train_y, data_lh, omega=omega, normalize = False,
-                            symmetrize = False, transform=torch.exp)
+    data_mod = spectralgp.models.SpectralModel(train_x, train_y, data_lh,
+        normalize = False, symmetrize = False, num_locs = args.nomg, omega_max = args.omega_max)
     data_lh.raw_noise = torch.tensor(-3.5)
 
-    # latent model #
-    mu_init = data_mod.covar_module.latent_mean(omega).detach()
-    g_init = g_init - mu_init
 
-    latent_lh = gpytorch.likelihoods.GaussianLikelihood(noise_prior=gpytorch.priors.SmoothedBoxPrior(1e-8, 1e-3))
-    latent_mod = spectralgp.models.ExactGPModel(omega, g_init, latent_lh)
-
-    # do some pre-training on the demeaned periodogram
-    spectralgp.trainer.trainer(omega, g_init, latent_mod, latent_lh)
-
-    ###############################
-    ## set up sampling factories ##
-    ###############################
-
-    ess_fact = lambda g, h, nsamples : ess_factory(g, h, nsamples, omega, train_x,
-                                            train_y, data_mod, data_lh, latent_mod, latent_lh)
-
-    ss_fact = lambda nu, h, nsamples : ss_factory(nu, h, omega, latent_mod, latent_lh,
-                                data_mod, data_lh, None, train_x, train_y, nsamples=nsamples)
-
-    ################################
-    ## set up alternating sampler ##
-    ################################
-
-    alt_sampler = AlternatingSampler(ss_fact, ess_fact,
-                totalSamples=args.iters, numInnerSamples=args.ess_iters, numOuterSamples=args.optim_iters,
-                h_init = None, g_init = g_init)
+    alt_sampler = spectralgp.samplers.AlternatingSampler([data_mod], [data_lh],
+                            spectralgp.sampling_factories.ss_factory,
+                            [spectralgp.sampling_factories.ess_factory],
+                            totalSamples=args.iters, numInnerSamples=args.ess_iters,
+                            numOuterSamples=args.optim_iters)
     alt_sampler.run()
-
-    data_mod.eval()
-
-    print(list(data_mod.named_parameters()))
-    print(list(latent_mod.named_parameters()))
 
     ###############################
     ## get out parametric models ##
     ###############################
 
-    rbf_mod = fit_parametric_model(train_x, train_y, iters=1000, kernel='rbf')
-    matern_mod = fit_parametric_model(train_x, train_y, iters=1000, kernel='matern')
-    sm_mod = fit_parametric_model(train_x, train_y, iters=1000, kernel='sm')
+    rbf_mod, _ = fit_parametric_model(train_x, train_y, iters=1000, kernel='rbf')
+    matern_mod, _ = fit_parametric_model(train_x, train_y, iters=1000, kernel='matern')
+    sm_mod, _ = fit_parametric_model(train_x, train_y, iters=1000, kernel='sm')
+
+    data_mod.eval()
+    latent_mod = data_mod.covar_module.latent_mod
+    omega = latent_mod.train_inputs[0].squeeze()
 
     plot_data_para_models(alt_sampler, omega, data_mod, latent_mod,
                                           rbf_mod, matern_mod, sm_mod,

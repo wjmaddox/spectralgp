@@ -22,14 +22,13 @@ setup(
     license='MPL-2.0',
     packages=['spectralgp'],
    install_requires=[
-    'matplotlib==3.0.3',
-    'setuptools==41.0.0',
+    'matplotlib>=3.0.3',
+    'setuptools>=41.0.0',
     'scipy>=1.2.1',
     'torch>=1.0.1',
-    'numpy==1.16.2',
-    'pandas==0.24.2',
+    'numpy>=1.16.2',
+    'pandas>=0.24.2',
     'gpytorch>=0.3.1',
-    'rpy2>=3.0.3',
     'scikit_learn>=0.20.3'
    ],
     include_package_data=True,

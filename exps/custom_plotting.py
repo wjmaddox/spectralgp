@@ -141,7 +141,7 @@ def plot_kernel(alt_sampler, omega, data_mod, latent_mod, gen_kern, mu_init):
 def plot_latent_space(alt_sampler, omega, latent_mod):
     # data stuff #
     last_samples=5
-    out_samples = alt_sampler.gsampled[0, :, -last_samples:]
+    out_samples = alt_sampler.gsampled[0][0, :, -last_samples:]
 
     # latent samples #
     with torch.no_grad():
@@ -171,7 +171,7 @@ def plot_data_para_models(alt_sampler, omega, data_mod, latent_mod,
                           train_x, train_y, test_x, test_y):
     last_samples = min(10, alt_sampler.gsampled[0].size(1))
     # preprocess the spectral samples #
-    out_samples = alt_sampler.gsampled[0, :, -last_samples:].detach()
+    out_samples = alt_sampler.gsampled[0][0, :, -last_samples:].detach()
 
     full_x = torch.cat((train_x, test_x)).sort()[0]
     pred_data = torch.zeros(len(full_x), last_samples)
