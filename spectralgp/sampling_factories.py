@@ -33,7 +33,7 @@ def ess_factory(nsamples, data_mod, data_lh, idx=None):
     return MeanEllipticalSlice(g_init, prior_dist, ess_ell_builder, nsamples, pdf_params=(data_mod, data_lh))
 
 # defining slice sampler factory
-def ss_factory(nsamples, data_mod, data_lh, idx = None):
+def ss_factory(nsamples, data_mod, data_lh, idx = None, lr=1e-2):
     if isinstance(data_mod, list):
         data_mod = data_mod[0]
         data_lh = data_lh[0]
@@ -70,7 +70,7 @@ def ss_factory(nsamples, data_mod, data_lh, idx = None):
 
     pars_for_optimizer = list(data_mod.parameters())
 
-    return SGD(pars_for_optimizer, ell_func, n_samples = nsamples, lr=1e-2)
+    return SGD(pars_for_optimizer, ell_func, n_samples = nsamples, lr=lr)
 
 def ss_multmodel_factory(nsamples, data_mods, data_lhs, idx=None):
     for dm in data_mods:

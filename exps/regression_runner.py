@@ -51,9 +51,10 @@ def parse():
                         default='False', type=bool)
     parser.add_argument('--optim_iters', help='(int) number of optimization iterations',
                         default=1, type=int)
-    parser.add_argument('--omega_max', help='(float) maximum value of omega', default=1., type=float)
+    parser.add_argument('--period_factor', help='(float) maximum value of omega', default=8., type=float)
     parser.add_argument('--save', help='(bool) save model output (samples and model and omega)?',
                         default=False, type=bool)
+    parser.add_argument('--lr_init', help="(float) learning rate for ss factory", default=1e-2, type=float)
     return parser.parse_args()
 
 def main(argv, seed=88):
@@ -86,7 +87,7 @@ def main(argv, seed=88):
     ###########################################
     data_lh = gpytorch.likelihoods.GaussianLikelihood(noise_prior=gpytorch.priors.SmoothedBoxPrior(1e-8, 1e-3))
     data_mod = spectralgp.models.SpectralModel(train_x, train_y, data_lh,
-        normalize = False, symmetrize = False, num_locs = args.nomg, spacing=args.spacing, omega_max = args.omega_max)
+        normalize = False, symmetrize = False, num_locs = args.nomg, spacing=args.spacing, period_factor = args.period_factor)
     data_lh.raw_noise = torch.tensor(-3.5)
 
 
@@ -94,8 +95,9 @@ def main(argv, seed=88):
     ## set up alternating sampler ##
     ################################
 
+    ss_factory = lambda *orig_args, **kwargs: spectralgp.sampling_factories.ss_factory(*orig_args, **kwargs, lr=args.lr_init)
     alt_sampler = spectralgp.samplers.AlternatingSampler([data_mod], [data_lh],
-                        spectralgp.sampling_factories.ss_factory,
+                        ss_factory,
                         [spectralgp.sampling_factories.ess_factory],
                         totalSamples=args.iters, numInnerSamples=args.ess_iters,
                         numOuterSamples=args.optim_iters)

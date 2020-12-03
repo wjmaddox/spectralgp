@@ -91,8 +91,8 @@ def read_data(dataset, only_scale = False, noise=False, **kwargs):
         full_y = sinc(full_x + 10.) + sinc(full_x) + sinc(full_x - 10.)
 
         test_indices = (full_x > -4.5) * (full_x < 4.5)
-        train_x = full_x[-test_indices+1]
-        train_y = full_y[-test_indices+1]
+        train_x = full_x[~test_indices]
+        train_y = full_y[~test_indices]
 
         test_x = full_x[test_indices]
         test_y = full_y[test_indices]

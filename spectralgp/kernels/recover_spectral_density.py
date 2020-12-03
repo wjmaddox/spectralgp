@@ -22,13 +22,16 @@ def get_spectral_density_from_kernel(kernel, locs = 100, base = torch.zeros(1,1)
 
     def integrand(tau):
         trig_part = torch.cos(2.0 * math.pi * tau * s)
+        base = torch.zeros(1,1)
 
+        if base is not None:
+            base = base.type(tau.dtype)
         kernel_part = kernel(tau, base).evaluate()
         return kernel_part * trig_part
 
 
     s_diff = s[1] - s[0]
-    tau = torch.linspace(-1 / s_diff, 1 / s_diff, 3 * locs).unsqueeze(1)
+    tau = torch.linspace(-1 / s_diff, 1 / s_diff, 3 * locs, dtype=s.dtype, device=s.device).unsqueeze(1)
     fn_output = integrand(tau)
 
     # standard trapezoidal rule

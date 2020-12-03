@@ -48,8 +48,8 @@ This is in the `exps/` directory.
 
 ```
 python regression_runner.py --data=SM --iters=1 --ess_iters=200 --nx=200 --omega_max=2 --optim_iters=8 #spectral mixture
-python regression_runner.py --data=sinc --iters=5 --ess_iters=22 --optim_iters=5 --omega_max=1.3 --nx=100 --mean=LogRBF --nomg=75 #sinc
-python regression_runner.py --data=QP --iters=5 --ess_iters=100 --nx=150 --omega_max=5 --period=1.7 --optim_iters=10 #quasi-periodic
+python regression_runner.py --data=sinc --iters=5 --ess_iters=22 --optim_iters=15 --nx=100 --mean=LogRBF --nomg=100 --lr_init=1e-3 #sinc
+python regression_runner.py --data=QP --iters=5 --ess_iters=100 --nx=150 --period=1.7 --optim_iters=10 #quasi-periodic
 python regression_runner.py --iters=5 --ess_iters=100 --optim_iters=10 --omega_max=8 #airline
 ```
 
