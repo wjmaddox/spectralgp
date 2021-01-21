@@ -1,6 +1,6 @@
 #
 # Elliptical slice sampling
-#
+# Implementation comes from https://github.com/jobovy/bovy_mcmc/blob/master/bovy_mcmc/elliptical_slice.py
 import torch
 import math
 import numpy as np
